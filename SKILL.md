@@ -9,13 +9,20 @@ description: Use when the user names a thinking tool, framework, or mental model
 
 A router for about 40 named thinking tools: which tool fits which situation, its exact structure, and its main trap. The tool serves the answer. Use a tool only when its structure does work that plain reasoning does not do.
 
-## When to Use
+## First Check
 
-- The user names a tool, or asks which tool fits
-- The user asks in so many words for a structured or systematic approach
-- The user plans a workshop and needs an agenda of methods
+Did the user do one of these things?
 
-Do not use this skill for an ordinary request to decide, diagnose, plan, or write. Do not use it to add a framework to an answer that is already clear. Related skills: `zwicky-box` for a solution space with several dimensions, `disciplined-entrepreneurship` for venture planning, `superpowers:systematic-debugging` for defects in code.
+- Name a tool, framework, or mental model
+- Ask which tool or method to use
+- Ask in so many words for a structured or systematic approach
+- Ask for the agenda of a workshop
+
+If the answer is no, this skill does not apply. Answer as you would without it: no tool, no matrix, no diagram, no added sections. In tests, answers that added a framework that the user did not request were longer and were judged worse than plain answers.
+
+If the answer is yes, continue.
+
+Related skills: `zwicky-box` for a solution space with several dimensions, `disciplined-entrepreneurship` for venture planning, `superpowers:systematic-debugging` for defects in code.
 
 ## How to Choose
 
@@ -143,6 +150,7 @@ For two options that exclude each other, see the conflict resolution diagram bel
 
 ## Common Mistakes
 
+- A tool that the user did not ask for: go back to the first check
 - A tool on an answer that was already clear: skip the tool and give the answer
 - Three tools as sketches: do one tool in full
 - An artifact with no conclusion: the recommendation comes first
