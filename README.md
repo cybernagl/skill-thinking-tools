@@ -14,17 +14,25 @@ Written by Claude Code, for Claude Code and other agents that read
 ## Design
 
 The skill is small on purpose. Agents were tested without it before a
-line was written:
+line was written, and with it afterwards:
 
 - A frontier model (Claude Fable 5.2) applied every named tool
-  correctly in 11 of 11 runs, and reasoned soundly in 10 runs where no
-  tool was named. For such a model the skill adds the selection table
-  and the traps. It does not add knowledge
+  correctly in 11 of 11 runs without the skill, and reasoned soundly in
+  10 runs where no tool was named. For such a model the skill adds the
+  selection table and the traps. It does not add knowledge
 - A small model (Claude Haiku 5.5) gave the correct structure for 32 of
   38 tools from memory. It failed on six less-known tools. Those six
-  have a reference file in `tools/`
+  have a reference file in `tools/`. With the files, the small model
+  applied all six correctly
 - All other tools have one router row with their structure and their
   main trap
+- A framework that the user did not ask for makes an answer worse. In
+  a blind comparison of four ordinary requests, the answers written
+  with an early version of the skill in context were longer and were
+  judged worse in all four. The skill therefore has a narrow trigger
+  and starts with a check that sends such requests back to a plain
+  answer. After that change, a second blind comparison found no forced
+  framework and no loss in quality
 
 The result is one skill with a router, not one skill for each tool. A
 tool gets its own file only where a test showed that an agent gets it
