@@ -49,4 +49,4 @@ Each arrow is a necessity. Read it as: "To have [head], we must have [tail], bec
 
 - Goldratt, Eliyahu M. What Is This Thing Called Theory of Constraints and How Should It Be Implemented? North River Press, 1990
 - Goldratt, Eliyahu M. It's Not Luck. North River Press, 1994
-- Dettmer, H. William. The Logical Thinking Process. ASQ Quality Press, 2007 (source of the name Conflict Resolution Diagram)
+- Dettmer, H. William. The Logical Thinking Process (source of the name Conflict Resolution Diagram)

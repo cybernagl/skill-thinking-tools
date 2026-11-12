@@ -31,8 +31,11 @@ line was written, and with it afterwards:
   with an early version of the skill in context were longer and were
   judged worse in all four. The skill therefore has a narrow trigger
   and starts with a check that sends such requests back to a plain
-  answer. After that change, a second blind comparison found no forced
-  framework and no loss in quality
+  answer. After that change, a second blind comparison of three of
+  the requests found no forced framework. The answers with the skill
+  were judged slightly better in two cases and slightly worse in one,
+  and they stayed somewhat longer than the plain answers. Each result
+  is from single runs
 
 The result is one skill with a router, not one skill for each tool. A
 tool gets its own file only where a test showed that an agent gets it

@@ -1,6 +1,6 @@
 # Confidence Determines Speed vs. Quality
 
-A product-building rule from Brandon Chu (2018). Speed and quality are not a fixed trade-off. Your confidence decides which one to favour for a given piece of work.
+A product-building rule from Brandon Chu. Speed and quality compete in product work. Your confidence decides which one to favour for a given piece of work.
 
 ## Structure
 
@@ -9,26 +9,29 @@ Two confidence questions, each answered with evidence:
 | Question | Low confidence | High confidence |
 |---|---|---|
 | Is the problem important? | Nobody outside the team has confirmed it | Customers confirmed it, or data shows it |
-| Is the solution correct? | The solution is your idea, not tested | Customers validated the solution |
+| Is the solution correct? | The solution is your idea and is not tested | Customers validated the solution |
 
-The two answers put the work on a line:
+Three results:
 
-```
-low confidence  <------------------------------>  high confidence
-favour speed: build little, learn fast           favour quality: build it properly, no shortcuts
-```
+| Problem confidence | Solution confidence | Favour |
+|---|---|---|
+| Low | Any | Speed |
+| High | Low | A balance of speed and quality |
+| High | High | Quality |
+
+Confidence is a scale, not a switch. The result moves along a line between speed and quality.
 
 ## Steps
 
 1. For each piece of work, answer the two questions. Write the evidence next to each answer
-2. Problem confidence low: do not build yet. Find out if the problem is real (talk to users, look at the data)
-3. Problem confidence high, solution confidence low: build the smallest version that can show if the solution works, and say that it is a test
-4. Two times high: build for quality
-5. Rate the work again when new evidence arrives. Work moves along the line
+2. Problem confidence low: favour speed. Do the least work that shows if the problem is real
+3. Problem confidence high, solution confidence low: balance the two. Build a small version that can show if the solution works, and say that it is a test
+4. Two times high: favour quality and build it properly
+5. Rate the work again when new evidence arrives
 
 ## Checks
 
-- Confidence means evidence, not conviction. A team is usually too sure of its own ideas. "We are certain" with no customer evidence is low confidence
+- Confidence means data, not conviction. "We are certain" with no evidence from customers is low confidence
 - The rule tells you how to build each item. It does not rank the items
 - Agree the mode with the stakeholders. A fast test that others take for the finished product causes conflict
 - A request for a solution ("build an API") is evidence for a problem, not for that solution
@@ -40,5 +43,5 @@ favour speed: build little, learn fast           favour quality: build it proper
 
 ## Sources
 
-- Chu, Brandon. "Product Management Mental Models for Everyone." The Black Box of Product Management, 2018 (model 6)
-- O'Haire, Wes. "Mental Models for Designers." Dropbox Design, 2019 (two-by-two variant, credited to Chu)
+- Chu, Brandon. "Product Management Mental Models for Everyone." The Black Box of Product Management
+- O'Haire, Wes. "Mental Models for Designers." Dropbox Design (a two-by-two variant)

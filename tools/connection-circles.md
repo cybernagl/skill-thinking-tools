@@ -1,6 +1,6 @@
 # Connection Circles
 
-A graphic organiser from The Shape of Change (Rob Quaden and Alan Ticotsky, 2004). The idea is credited to the teacher Julia Hendrix. Use it to find the feedback loops in a story or situation, before you draw a causal loop diagram.
+A graphic organiser from The Shape of Change (Rob Quaden and Alan Ticotsky, 2004). Use it to find the feedback loops in a story or situation, before you draw a causal loop diagram.
 
 ## Structure
 
@@ -34,6 +34,6 @@ A graphic organiser from The Shape of Change (Rob Quaden and Alan Ticotsky, 2004
 
 ## Sources
 
-- Quaden, Rob, and Alan Ticotsky, with Debra Lyneis. The Shape of Change. Creative Learning Exchange, 2004 (lesson 10, "Do You Want Fries with That?")
-- "Learning About Connection Circles." The Systems Thinker, volume 16 (adapted from The Shape of Change)
-- Sterman, John. Business Dynamics. McGraw-Hill, 2000 (chapter 5: link polarity and loop type)
+- Quaden, Rob, and Alan Ticotsky, with Debra Lyneis. The Shape of Change. Creative Learning Exchange, 2004
+- "Learning About Connection Circles." The Systems Thinker (adapted from a chapter of The Shape of Change)
+- Sterman, John D. Business Dynamics. McGraw-Hill, 2000 (link polarity and loop type)

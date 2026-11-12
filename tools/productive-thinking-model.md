@@ -1,6 +1,6 @@
 # Productive Thinking Model
 
-Also: PTM. A six-step problem-solving process by Tim Hurson, from his book Think Better (2007). It builds on Creative Problem Solving (Osborn and Parnes) and IDEF. Use it for a problem with large consequences.
+Also: PTM. A six-step problem-solving process by Tim Hurson, from his book Think Better. Use it for a problem with large consequences.
 
 ## Structure
 
@@ -19,7 +19,7 @@ The model separates creative from critical thinking: first make a long list with
 
 ## Steps
 
-1. Answer five questions: What is the itch? What is the impact? What is the information? Who is involved? What is the vision? The vision is the Target Future
+1. Answer five questions: What is the problem? What is its impact? What information do you have? Who is involved? What is the vision of the future when the problem is solved? The vision is the Target Future
 2. Write the success criteria with DRIVE
 3. List questions in the form "How might we ...?" Choose one: the catalytic question
 4. List answers to it until you reach the third third
@@ -41,4 +41,3 @@ The model separates creative from critical thinking: first make a long list with
 ## Sources
 
 - Hurson, Tim. Think Better: An Innovator's Guide to Productive Thinking. McGraw-Hill, 2007
-- International Center for Studies in Creativity. Book Review: Think Better. Blog post, 2008 (origin in Creative Problem Solving and IDEF)
