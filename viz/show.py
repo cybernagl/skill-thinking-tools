@@ -26,7 +26,7 @@ import re
 import subprocess
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.realpath(__file__))
 SKILL = os.path.dirname(HERE)
 MERMAID_VERSION = "12.3.0"
 D3_FILE = os.path.join(HERE, "vendor", "d3.v7.9.2.min.js")
@@ -409,7 +409,7 @@ def main():
     if args.check:
         return
     stem = os.path.splitext(os.path.basename(args.inputs[0]))[0]
-    out = os.path.abspath(args.out or "%s-%s.html" % (args.kind, stem))
+    out = os.path.realpath(args.out or "%s-%s.html" % (args.kind, stem))
     if os.path.commonpath([out, SKILL]) == SKILL:
         fail("the page must not be written into the skill folder. Run the command from the folder of your work, or give --out")
     os.makedirs(os.path.dirname(out), exist_ok=True)

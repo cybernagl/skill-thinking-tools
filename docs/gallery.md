@@ -240,4 +240,4 @@ flowchart RL
 
 ## Renderers
 
-The fishbone, the Wardley map, and the Cynefin diagram use Mermaid diagram types that are marked as beta. They need Mermaid 11.16 or later, or Obsidian 1.15 or later. Each Mermaid sample on this page was checked with Mermaid 12.3.0. Each D3 page was checked in Chrome in light and dark mode.
+The fishbone, the Wardley map, and the Cynefin diagram use Mermaid diagram types that are marked as beta. They need Mermaid 11.16 or later. GitHub renders them, as this page shows. Obsidian 1.15 and later states that it is compatible with Mermaid 12; that renderer was not tested here. Each Mermaid sample on this page was checked with Mermaid 12.3.0. Each D3 page was checked in Chrome in light and dark mode.

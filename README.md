@@ -86,12 +86,14 @@ The diagrams follow the same rule:
 
 - Asked for 16 diagrams without the skill, the small model drew the
   fishbone, the Wardley map, and Cynefin as plain flowcharts, which
-  lose the shape of those diagrams. The frontier model found the
-  fitting Mermaid types, but it needed 25 minutes. The skill therefore
-  has a snippet for those three types only, and rules for the rest
+  lose the shape of those diagrams. The frontier model used the
+  fitting Mermaid type for two of the three, in a run of 25 minutes.
+  The skill therefore has a snippet for those three types only, and
+  rules for the rest
 - With the skill, the small model wrote a valid fishbone and a valid
-  Wardley map into a note, and built a loop map page with the script.
-  The loops in its answer were the loops that the script found
+  Wardley map, and built a loop map page with the script. The loops in
+  its answer were the loops that the script found. Each result is from
+  one run
 - The numbers on the pages are not left to the model. The script finds
   the loops, the ranking, and the expected values, and its results are
   checked against cases that were worked by hand
@@ -106,9 +108,10 @@ The diagrams follow the same rule:
 
 The skill text has no dependencies. The script that builds the D3 pages
 needs Python 3. D3 7.9.2 is in the repository (`viz/vendor`, ISC
-licence), so the pages work offline. Mermaid diagrams need a renderer
-with Mermaid 11.16 or later, or Obsidian 1.15 or later, for the three
-beta diagram types.
+licence), so the pages work offline. The three beta diagram types of
+Mermaid need Mermaid 11.16 or later. GitHub renders them. Obsidian 1.15
+and later states that it is compatible with Mermaid 12; that renderer
+was not tested here.
 
 ## Contents
 
@@ -139,6 +142,12 @@ The script checks the calculations against hand-worked cases, builds
 each page, and runs the same checks on the JavaScript of the pages if
 Node is installed. `python3 viz/build_samples.py` builds the sample
 pages in `docs/samples` again after a change to a template.
+
+    python3 viz/show.py mermaid mermaid/*.mmd --out /tmp/snippets.html --open
+
+This builds a page that draws the snippets with a fixed Mermaid
+version and shows each syntax error. It is a check for the snippets,
+not a way to deliver a diagram.
 
 The Zwicky box has its own skill:
 [skill-zwicky-box](https://github.com/cybernagl/skill-zwicky-box).

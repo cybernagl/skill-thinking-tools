@@ -16,7 +16,7 @@ Some tools have an artifact that is a picture: a graph, a tree, a map, or points
 | A note, a document, a README, or no stated format | Markdown with a `mermaid` block where the artifact belongs |
 | An HTML page, an interactive view, or a page to share | A D3 page from `viz/show.py` |
 
-If the answer goes to a terminal, write the Markdown file or the page into the folder of the user's work and give the path. Do not print Mermaid source in a terminal answer. Never write into the skill folder.
+When the user asks for a note, a document, or a page, write it as a file in the folder of the user's work. In the answer, give the conclusion and the path of the file, and do not repeat the diagram source. Never write into the skill folder.
 
 ## Forms
 
@@ -49,7 +49,7 @@ Use these results in the answer and in the Mermaid diagram.
 ## Mermaid in Markdown
 
 - Put the block where the artifact belongs in the document, with one line below it that says what the picture shows
-- The three `-beta` types need a current renderer: Mermaid 11.16 or later, or Obsidian 1.15 or later. For an older renderer use a `mindmap` for the fishbone, a `flowchart` with one subgraph for each evolution stage for the Wardley map, and a table for Cynefin
+- The three `-beta` types need Mermaid 11.16 or later. GitHub renders them. Obsidian 1.15 and later states that it is compatible with Mermaid 12. For an older renderer use a `mindmap` for the fishbone, a `flowchart` with one subgraph for each evolution stage for the Wardley map, and a table for Cynefin
 - Start from the snippet. Change the content and keep the syntax
 - `wardley-beta`: the coordinates are `[visibility, evolution]`, each from 0 to 1. Visibility is the vertical axis. This is the reverse of x and y
 - `cynefin-beta`: each item is a quoted string on its own line below its domain. Use at most four items for each domain

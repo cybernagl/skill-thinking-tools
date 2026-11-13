@@ -100,6 +100,15 @@ try:
     check("build: mermaid page escapes a closing script tag in the data", run.returncode == 0 and "A </script> B" not in page and "A <\\/script> B" in page, run.stderr)
     inside = subprocess.run([sys.executable, script, "loops", os.path.join(VIZ, "examples", "loops-support-backlog.json"), "--out", os.path.join(VIZ, "x.html")], capture_output=True, text=True)
     check("build: refuses to write into the skill folder", inside.returncode != 0 and not os.path.exists(os.path.join(VIZ, "x.html")))
+    # The same guard when the skill is installed as a symbolic link and the script is called through the link.
+    link = os.path.join(work, "linked-skill")
+    os.symlink(os.path.dirname(VIZ), link)
+    default_out = os.path.join(VIZ, "loops-loops-support-backlog.html")
+    linked = subprocess.run([sys.executable, os.path.join(link, "viz", "show.py"), "loops", os.path.join(VIZ, "examples", "loops-support-backlog.json")], capture_output=True, text=True, cwd=VIZ)
+    refused = linked.returncode != 0 and not os.path.exists(default_out)
+    if os.path.exists(default_out):
+        os.remove(default_out)
+    check("build: refuses to write into the skill folder through a symbolic link", refused)
 finally:
     shutil.rmtree(work, ignore_errors=True)
 
