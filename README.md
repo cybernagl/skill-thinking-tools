@@ -109,9 +109,8 @@ The diagrams follow the same rule:
 The skill text has no dependencies. The script that builds the D3 pages
 needs Python 3. D3 7.9.2 is in the repository (`viz/vendor`, ISC
 licence), so the pages work offline. The three beta diagram types of
-Mermaid need Mermaid 11.16 or later. GitHub renders them. Obsidian 1.15
-and later states that it is compatible with Mermaid 12; that renderer
-was not tested here.
+Mermaid need Mermaid 11.16 or later. GitHub renders them, and they
+were checked in Obsidian 1.15.1.
 
 ## Contents
 
