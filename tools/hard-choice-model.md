@@ -1,6 +1,6 @@
 # Hard Choice Model
 
-A two-by-two matrix that names the kind of decision before you spend effort on it. Wes O'Haire describes it in "Mental Models for Designers", and a similar matrix is in The Decision Book (Krogerus and Tschäppeler). The name refers to Ruth Chang's work on hard choices, but the matrix is not hers.
+A two-by-two matrix that names the kind of decision before you spend effort on it. Wes O'Haire describes it in "Mental Models for Designers" (2019) and names no source. The Decision Book (Krogerus and Tschäppeler) has the same matrix as "The Hard Choice Model", with the axes "how comparable are the options" and "how great is the consequence". The name refers to Ruth Chang's work on hard choices, but the matrix is not hers.
 
 ## Structure
 
@@ -37,6 +37,6 @@ Two questions: how large is the impact of the decision, and how easy is it to co
 
 ## Sources
 
-- O'Haire, Wes. "Mental Models for Designers." Dropbox Design
-- Krogerus, Mikael, and Roman Tschäppeler. The Decision Book: Fifty Models for Strategic Thinking
+- O'Haire, Wes. "Mental Models for Designers." Dropbox Design, 2019
+- Krogerus, Mikael, and Roman Tschäppeler. "The Hard Choice Model." The Decision Book: Fifty Models for Strategic Thinking. Revised edition, 2018
 - Chang, Ruth. "How to Make Hard Choices." TED talk (options that are on a par)

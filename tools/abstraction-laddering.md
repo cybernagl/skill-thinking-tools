@@ -1,6 +1,6 @@
 # Abstraction Laddering
 
-Also: Why-How Laddering (Stanford d.school). A problem-framing ladder from design practice. The LUMA Institute and Autodesk publish it under this name. Min Basadur's challenge mapping uses the same two directions with the questions "Why?" and "What's stopping you?". Use it to state a problem at a broader or narrower level before you solve it. It is not Hayakawa's ladder of abstraction for language.
+Also: Why-How Laddering (Stanford d.school). A problem-framing ladder from design practice. It is one of the methods of the LUMA Institute, and Wes O'Haire describes it in "Mental Models for Designers" (2019). Min Basadur's challenge mapping uses the same two directions with the questions "Why?" and "What's stopping you?". Use it to state a problem at a broader or narrower level before you solve it. It is not Hayakawa's ladder of abstraction for language.
 
 ## Structure
 
@@ -20,7 +20,7 @@ narrower statement   ("How else?" adds more)
 2. Ask "Why?". Write the answer above it as a new statement in the same form
 3. Ask "Why else?". Write each answer beside the first
 4. Repeat steps 2 and 3 on the new statements. Stop when a statement is meaningful but you cannot act on it
-5. Go back to the start statement. Ask "How?" and "How else?". Write the answers below it. Repeat down to a concrete action
+5. Ask "How?" and "How else?" of the start statement, and then of each broader statement. Write the answers below. A "How?" from a broader statement gives solutions that the start statement hides
 6. Choose the level to work on: a statement that is meaningful and that you can act on. Make it the new problem statement
 
 ## Checks
@@ -37,8 +37,8 @@ narrower statement   ("How else?" adds more)
 
 ## Sources
 
-- O'Haire, Wes. "Mental Models for Designers." Dropbox Design
-- Autodesk. "Abstraction Laddering."
+- LUMA Institute. "Abstraction Laddering." Method page of the LUMA System
 - LUMA Institute. Innovating for People: Handbook of Human-Centered Design Methods
+- O'Haire, Wes. "Mental Models for Designers." Dropbox Design, 2019
 - Basadur, Min, et al. "A New Methodology for Formulating Ill-Structured Problems." Omega (challenge mapping)
 - Stanford d.school. Design Thinking Bootleg (Why-How Laddering)
