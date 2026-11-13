@@ -1,0 +1,43 @@
+{
+  "title": "Issue Tree: Double the Revenue",
+  "subtitle": "How can we add 2M EUR of annual revenue in 18 months?",
+  "direction": "right",
+  "root": {
+    "label": "How can we add 2M EUR of annual revenue in 18 months?",
+    "children": [
+      {
+        "label": "Earn more from heat pump manufacturers",
+        "note": "1.2M EUR today, thin margin",
+        "children": [
+          { "label": "Win more manufacturers", "note": "Is a design-in in progress that reaches series production in 18 months?" },
+          { "label": "Sell more units to each manufacturer", "note": "Which model lines do we not supply yet?" },
+          { "label": "Earn more for each unit", "note": "Which terms stop the price erosion?", "tag": "open" }
+        ]
+      },
+      {
+        "label": "Sell more through the web shop",
+        "note": "0.5M EUR today, good margin",
+        "children": [
+          { "label": "Win more installers", "tag": "priority" },
+          { "label": "Get more orders from each installer" },
+          { "label": "Earn more for each order", "note": "Accessories, services, price" }
+        ]
+      },
+      {
+        "label": "Earn more from utilities",
+        "note": "0.3M EUR today, one customer",
+        "children": [
+          { "label": "Win more utilities", "note": "Does the contract permit sales to other utilities?", "tag": "priority" },
+          { "label": "Sell more units to each utility" }
+        ]
+      },
+      {
+        "label": "Add revenue that does not exist today",
+        "children": [
+          { "label": "New routes to market" },
+          { "label": "New products on the same platform" }
+        ]
+      }
+    ]
+  }
+}

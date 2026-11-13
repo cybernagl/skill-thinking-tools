@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagrams</title>
+<style>
+  :root { color-scheme: light; --surface: #fcfcfb; --panel: #f3f2ee; --ink: #0b0b0b; --ink-2: #52514e; --rule: #d6d5cf; --bad: #d03b3b; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { color-scheme: dark; --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39; }
+  }
+  :root[data-theme="dark"] { color-scheme: dark; --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--surface); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  section { margin: 0 0 28px; }
+  h2 { font-size: 17px; margin: 0 0 8px; }
+  .diagram { overflow-x: auto; }
+  .diagram svg { max-width: 100%; height: auto; }
+  .error { border: 1px solid var(--bad); border-radius: 6px; padding: 8px 10px; white-space: pre-wrap; font: 13px/1.4 ui-monospace, Menlo, monospace; }
+  details { margin-top: 6px; }
+  summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+  pre { background: var(--panel); padding: 8px 10px; border-radius: 6px; overflow-x: auto; font: 13px/1.4 ui-monospace, Menlo, monospace; }
+  #status { color: var(--ink-2); font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<p id="status">Loading Mermaid ...</p>
+<script type="application/json" id="data">__DATA__</script>
+<script type="module">
+  const data = JSON.parse(document.getElementById("data").textContent);
+  const out = document.getElementById("out");
+  const status = document.getElementById("status");
+  const dark = document.documentElement.dataset.theme === "dark" ||
+    (document.documentElement.dataset.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+  let mermaid;
+  try {
+    mermaid = (await import(`https://cdn.jsdelivr.net/npm/mermaid@${data.version}/dist/mermaid.esm.min.mjs`)).default;
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default" });
+  } catch (error) {
+    status.textContent = "Mermaid could not be loaded (the page needs a network connection the first time): " + error;
+  }
+  let failed = 0;
+  for (const [index, item] of data.diagrams.entries()) {
+    const section = document.createElement("section");
+    const heading = document.createElement("h2");
+    heading.textContent = item.title;
+    const holder = document.createElement("div");
+    holder.className = "diagram";
+    section.append(heading, holder);
+    if (mermaid) {
+      try {
+        const { svg } = await mermaid.render("diagram" + index, item.code);
+        holder.innerHTML = svg;
+      } catch (error) {
+        failed += 1;
+        holder.className = "error";
+        holder.textContent = "This diagram has an error:\n" + String(error && error.message ? error.message : error);
+        document.querySelectorAll("body > [id^='ddiagram']").forEach((element) => element.remove());
+      }
+    }
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = "Mermaid source";
+    const pre = document.createElement("pre");
+    pre.textContent = item.code;
+    details.append(summary, pre);
+    section.append(details);
+    out.append(section);
+  }
+  if (mermaid) status.textContent = failed ? failed + " diagram(s) with an error. Mermaid " + data.version : "Mermaid " + data.version;
+  document.title = data.diagrams.length === 1 ? data.diagrams[0].title : "Diagrams";
+</script>
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statement Tree</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --panel: #f3f2ee; --ink: #0b0b0b; --ink-2: #52514e; --rule: #d6d5cf;
+    --plus: #2a78d6; --minus: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+      --plus: #3987e5; --minus: #d95926;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+    --plus: #3987e5; --minus: #d95926;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--surface); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  p.sub { margin: 0 0 12px; color: var(--ink-2); }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+  .bar button { font: inherit; font-size: 13px; color: var(--ink); background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  .scroll { overflow-x: auto; }
+  svg { display: block; }
+  svg text { fill: var(--ink); }
+  .link { fill: none; stroke: var(--plus); stroke-width: 1.5; stroke-linejoin: round; }
+  text.via, .node .note { fill: var(--ink-2); }
+  .node .box { fill: var(--panel); stroke: var(--rule); }
+  .node.root .box { stroke: var(--ink); }
+  .node .chip { fill: var(--surface); stroke: var(--plus); }
+  .node .knob { fill: var(--surface); stroke: var(--ink-2); }
+  .node .mark { text-anchor: middle; dominant-baseline: central; }
+  .node.branch { cursor: pointer; }
+  .node:focus { outline: none; }
+  .node:focus-visible .box { stroke: var(--ink); stroke-width: 2; }
+  p.note { color: var(--ink-2); font-size: 13px; margin: 10px 0 0; }
+  .errors { border: 1px solid var(--minus); border-radius: 6px; padding: 8px 10px; margin: 0 0 12px; }
+  details { margin-top: 18px; }
+  summary { cursor: pointer; color: var(--ink-2); }
+  ul.tree, ul.tree ul { list-style: none; margin: 0; padding: 0; }
+  ul.tree ul { margin-left: 6px; padding-left: 14px; border-left: 1px solid var(--rule); }
+  ul.tree li { margin: 8px 0 0; font-size: 14px; }
+  ul.tree .via { color: var(--ink-2); }
+  ul.tree .tag { margin-left: 8px; padding: 0 7px; border: 1px solid var(--plus); border-radius: 9px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  ul.tree .note { display: block; color: var(--ink-2); font-size: 13px; }
+</style>
+</head>
+<body>
+<h1 id="title">Statement Tree</h1>
+<p class="sub" id="subtitle"></p>
+<div id="errors"></div>
+<div class="bar">
+  <button type="button" id="expand">Expand all</button>
+  <button type="button" id="collapse">Collapse to level 2</button>
+</div>
+<div class="scroll"><svg id="tree" role="img"></svg></div>
+<p class="note">Select a statement with a round mark to hide or show the statements under it. A mark such as +3 gives the number of hidden statements.</p>
+<details>
+  <summary>Statements as a list</summary>
+  <ul class="tree" id="list"></ul>
+</details>
+<script>/*__D3__*/</script>
+<script>/*__LIB__*/</script>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  "use strict";
+  // "#light" or "#dark" at the end of the address fixes the theme.
+  var theme = location.hash.replace("#", "");
+  if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  var data = JSON.parse(document.getElementById("data").textContent);
+  var errors = [], name = data.title || "Statement Tree";
+  document.title = name;
+  d3.select("#title").text(name);
+  d3.select("#subtitle").text(data.subtitle || "");
+
+  var dir = data.direction || "right";
+  if (["right", "down", "up"].indexOf(dir) < 0) {
+    errors.push('Unknown direction "' + dir + '". The tree is drawn to the right.');
+    dir = "right";
+  }
+  // "flat": the levels are columns. If not, the levels are rows.
+  var flat = dir === "right", BW = flat ? 208 : 180, PAD = 10, GAP = flat ? 12 : 16, M = 20;
+  var svg = d3.select("#tree"), probe = svg.append("text").attr("visibility", "hidden"), stage = svg.append("g");
+
+  // Width of a text in SVG units. A page that is not on a screen gets an estimate.
+  function width(text, size, weight) {
+    probe.attr("font-size", size).attr("font-weight", weight).text(text);
+    var w = 0;
+    try { w = probe.node().getComputedTextLength(); } catch (e) { w = 0; }
+    return w || text.length * size * 0.56;
+  }
+  // Breaks a text into lines of a maximum width. Text that does not fit is cut and gets "…".
+  function wrap(text, size, weight, max, most) {
+    var lines = [], line = "";
+    text.split(/\s+/).forEach(function (word) {
+      var next = line ? line + " " + word : word;
+      if (line && width(next, size, weight) > max) { lines.push(line); line = word; } else { line = next; }
+    });
+    if (line) lines.push(line);
+    var cut = lines.length > most;
+    lines = lines.slice(0, most);
+    if (cut) lines[most - 1] += " …";
+    lines = lines.map(function (l) {
+      while (width(l, size, weight) > max && l.length > 2) { l = l.slice(0, -2) + "…"; cut = true; }
+      return l;
+    });
+    lines.cut = cut;
+    return lines;
+  }
+
+  // The model: each statement gets its lines of text and the height of its box.
+  var all = [], maxVia = 0, levels = 0;
+  function build(raw, depth, place) {
+    var bad = !raw || typeof raw !== "object";
+    if (bad || !raw.label) errors.push("The statement at place " + place + " has no label.");
+    if (bad) raw = {};
+    var n = { id: all.length, depth: depth, label: String(raw.label || "(no label)"), note: String(raw.note || ""), tag: String(raw.tag || "") };
+    all.push(n);
+    levels = Math.max(levels, depth + 1);
+    n.lines = wrap(n.label, 14, depth ? 400 : 600, BW - 2 * PAD, 3);
+    n.notes = n.note ? wrap(n.note, 12, 400, BW - 2 * PAD, 3) : [];
+    n.chip = (n.tag && wrap(n.tag, 11, 600, BW - 2 * PAD - 14, 1)[0]) || "";
+    n.via = String(raw.via || "");
+    n.edge = (n.via && wrap(n.via, 12, 400, flat ? 110 : BW / 2 - 10, 1)[0]) || "";
+    if (n.edge) maxVia = Math.max(maxVia, width(n.edge, 12, 400));
+    n.h = 2 * PAD - 2 + (n.chip ? 22 : 0) + n.lines.length * 17 + (n.notes.length ? 3 + n.notes.length * 15 : 0);
+    n.kids = (Array.isArray(raw.children) ? raw.children : []).map(function (kid, i) { return build(kid, depth + 1, place + "." + (i + 1)); });
+    n.hidden = n.kids.reduce(function (sum, kid) { return sum + 1 + kid.hidden; }, 0);
+    return n;
+  }
+  if (!data.root) errors.push("The data has no root.");
+  var tree = data.root ? build(data.root, 0, "1") : null;
+  if (errors.length) {
+    var box = d3.select("#errors").append("div").attr("class", "errors");
+    box.append("strong").text("Check the data:");
+    errors.forEach(function (e) { box.append("div").text(e); });
+  }
+  if (!tree) { svg.attr("width", 0).attr("height", 0).attr("aria-label", name + ": no tree"); return; }
+
+  // Space between two levels. It holds the lines to the children and the text on a line.
+  var STEP = flat ? Math.max(40, maxVia + 30) : maxVia ? 44 : 34;
+  var closed = {};
+
+  function draw(focus) {
+    var root = d3.hierarchy(tree, function (n) { return closed[n.id] ? null : n.kids; });
+    // Each statement gets a band across the tree. The band is as wide as its own box or as the bands of its children.
+    root.eachAfter(function (d) {
+      d.inner = (d.children || []).reduce(function (sum, c) { return sum + c.band + GAP; }, -GAP);
+      d.band = Math.max(flat ? d.data.h : BW, d.inner);
+    });
+    root.start = 0;
+    root.eachBefore(function (d) {
+      var at = d.start + (d.band - d.inner) / 2;
+      (d.children || []).forEach(function (c) { c.start = at; at += c.band + GAP; });
+    });
+    // Each level is as deep as its largest box.
+    var nodes = root.descendants(), deep = [], offset = [0];
+    nodes.forEach(function (d) { deep[d.depth] = Math.max(deep[d.depth] || 0, flat ? BW : d.data.h); });
+    deep.forEach(function (size, i) { offset[i + 1] = offset[i] + size + STEP; });
+    var reach = offset[deep.length] - STEP;
+    nodes.forEach(function (d) {
+      var mid = d.start + d.band / 2, h = d.data.h;
+      d.x = M + (flat ? offset[d.depth] : mid - BW / 2);
+      d.y = M + (flat ? mid - h / 2 : dir === "down" ? offset[d.depth] : reach - offset[d.depth] - h);
+    });
+    var W = Math.ceil(2 * M + (flat ? reach : root.band)), H = Math.ceil(2 * M + (flat ? root.band : reach));
+    var gone = all.length - nodes.length;
+    svg.attr("width", W).attr("height", H).attr("viewBox", "0 0 " + W + " " + H).attr("aria-label",
+      name + ": tree of " + some(all.length) + ", levels: " + levels + ", the first statement at the " +
+      { right: "left", down: "top", up: "bottom" }[dir] + (gone ? ". Hidden: " + some(gone) : ""));
+    stage.selectAll("*").remove();
+
+    // Lines with right angles: no line goes through a box or through the text of another line.
+    root.links().forEach(function (l) {
+      var s = l.source, t = l.target, d, vx, vy, anchor = "start";
+      if (flat) {
+        vy = t.y + t.data.h / 2;
+        d = "M" + (s.x + BW) + "," + (s.y + s.data.h / 2) + "H" + (s.x + BW + 16) + "V" + vy + "H" + t.x;
+        vx = t.x - 5; vy -= 5; anchor = "end";
+      } else {
+        var down = dir === "down", cx = t.x + BW / 2;
+        var turn = M + (down ? offset[s.depth] + deep[s.depth] + 14 : reach - offset[s.depth] - deep[s.depth] - 14);
+        d = "M" + (s.x + BW / 2) + "," + (down ? s.y + s.data.h : s.y) + "V" + turn + "H" + cx + "V" + (down ? t.y : t.y + t.data.h);
+        vx = cx + 6; vy = down ? t.y - 6 : t.y + t.data.h + 15;
+      }
+      stage.append("path").attr("class", "link").attr("d", d);
+      if (t.data.edge) stage.append("text").attr("class", "via").attr("x", vx).attr("y", vy).attr("text-anchor", anchor).attr("font-size", 12).text(t.data.edge);
+    });
+
+    var g = stage.selectAll("g.node").data(nodes).join("g")
+      .attr("class", function (d) { return "node" + (d.depth ? "" : " root") + (d.data.kids.length ? " branch" : ""); })
+      .attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; });
+    g.append("rect").attr("class", "box").attr("width", BW).attr("height", function (d) { return d.data.h; }).attr("rx", 6);
+    g.each(function (d) {
+      var n = d.data, node = d3.select(this), y = PAD;
+      if (n.lines.cut || n.notes.cut) node.append("title").text(n.label + (n.note ? ". " + n.note : ""));
+      if (n.chip) {
+        node.append("rect").attr("class", "chip").attr("x", PAD).attr("y", y).attr("width", width(n.chip, 11, 600) + 14).attr("height", 17).attr("rx", 8.5);
+        node.append("text").attr("x", PAD + 7).attr("y", y + 12.5).attr("font-size", 11).attr("font-weight", 600).text(n.chip);
+        y += 22;
+      }
+      n.lines.forEach(function (line, k) {
+        node.append("text").attr("x", PAD).attr("y", y + 13 + k * 17).attr("font-size", 14).attr("font-weight", d.depth ? 400 : 600).text(line);
+      });
+      y += n.lines.length * 17 + 3;
+      n.notes.forEach(function (line, k) {
+        node.append("text").attr("class", "note").attr("x", PAD).attr("y", y + 11 + k * 15).attr("font-size", 12).text(line);
+      });
+      if (!n.kids.length) return;
+      // The round mark sits on the side of the box where the children are.
+      var shut = !!closed[n.id], mark = shut ? "+" + n.hidden : "−", kw = Math.max(16, width(mark, 11, 600) + 10);
+      var kx = flat ? BW : BW / 2, ky = flat ? n.h / 2 : dir === "down" ? n.h : 0;
+      node.append("rect").attr("class", "knob").attr("x", kx - kw / 2).attr("y", ky - 8).attr("width", kw).attr("height", 16).attr("rx", 8);
+      node.append("text").attr("class", "mark").attr("x", kx).attr("y", ky).attr("font-size", 11).attr("font-weight", 600).text(mark);
+      node.attr("tabindex", 0).attr("role", "button").attr("aria-expanded", shut ? "false" : "true")
+        .attr("aria-label", n.label + (shut ? ", hidden: " + some(n.hidden) : ""));
+    });
+    g.on("click", toggle).on("keydown", function (event, d) {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggle(event, d); }
+    });
+    if (focus !== undefined) g.filter(function (d) { return d.data.id === focus; }).each(function () { this.focus(); });
+  }
+  function some(n) { return n + (n === 1 ? " statement" : " statements"); }
+  function toggle(event, d) {
+    if (!d.data.kids.length) return;
+    closed[d.data.id] = !closed[d.data.id];
+    draw(d.data.id);
+  }
+  d3.select("#expand").on("click", function () { closed = {}; draw(); });
+  d3.select("#collapse").on("click", function () {
+    // Level 1 is the first statement. The statements of level 2 stay on the page and are closed.
+    all.forEach(function (n) { closed[n.id] = n.depth >= 1 && n.kids.length > 0; });
+    draw();
+  });
+  draw();
+
+  // The same tree as an indented list.
+  function list(parent, n) {
+    var li = parent.append("li");
+    if (n.via) li.append("span").attr("class", "via").text(n.via + " ");
+    li.append("span").text(n.label);
+    if (n.tag) li.append("span").attr("class", "tag").text(n.tag);
+    if (n.note) li.append("span").attr("class", "note").text(n.note);
+    if (n.kids.length) {
+      var ul = li.append("ul");
+      n.kids.forEach(function (kid) { list(ul, kid); });
+    }
+  }
+  list(d3.select("#list"), tree);
+})();
+</script>
+</body>
+</html>

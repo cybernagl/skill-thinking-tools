@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decision Matrix</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --panel: #f3f2ee; --ink: #0b0b0b; --ink-2: #52514e; --rule: #d6d5cf;
+    --plus: #2a78d6; --minus: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+      --plus: #3987e5; --minus: #d95926;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+    --plus: #3987e5; --minus: #d95926;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--surface); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  p { margin: 0 0 8px; }
+  p.sub { margin: 0 0 12px; color: var(--ink-2); }
+  h2 { font-size: 15px; margin: 18px 0 8px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(260px, 2fr); gap: 0 24px; align-items: start; }
+  .layout h2:first-child { margin-top: 0; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } .layout > div + div { margin-top: 18px; } }
+  #ranking { width: 100%; height: auto; display: block; overflow: visible; }
+  .bar .fill { fill: var(--plus); }
+  .bar:hover .fill { opacity: 0.8; }
+  .bar .hit { fill: transparent; }
+  .bar text { fill: var(--ink); font-size: 14px; }
+  .bar .name { font-weight: 600; }
+  .bar .first { fill: var(--ink-2); font-weight: 400; font-size: 13px; }
+  .bar .value { font-variant-numeric: tabular-nums; dominant-baseline: central; }
+  .bar .zero, .axis path, .axis line { stroke: var(--rule); }
+  .axis { color: var(--ink-2); font-family: inherit; font-size: 12px; }
+  ul.plain { margin: 0 0 8px; padding-left: 18px; }
+  #moved { background: var(--panel); border-left: 3px solid var(--ink); padding: 6px 10px; }
+  .weight { margin: 0 0 14px; }
+  .weight label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .weight .name { font-weight: 600; }
+  .weight .share { color: var(--ink-2); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .weight input { display: block; width: 100%; margin: 4px 0 2px; accent-color: var(--plus); }
+  button { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  .note { color: var(--ink-2); font-size: 13px; margin: 8px 0 0; }
+  .weight .note { margin: 0; }
+  .errors { border: 1px solid var(--minus); border-radius: 6px; padding: 8px 10px; margin: 0 0 12px; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; font-size: 14px; width: 100%; }
+  th, td { text-align: left; padding: 6px 16px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: bottom; }
+  thead th { min-width: 104px; }
+  th .meta { display: block; color: var(--ink-2); font-weight: 400; font-size: 12px; }
+  tbody th { white-space: nowrap; }
+  td { font-variant-numeric: tabular-nums; }
+  td .track { display: block; height: 4px; margin-top: 3px; background: var(--panel); }
+  td .fill { display: block; height: 4px; background: var(--plus); border-radius: 0 2px 2px 0; }
+  #tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--surface); padding: 6px 8px; border-radius: 4px; font-size: 13px; max-width: 280px; display: none; z-index: 5; white-space: pre-line; }
+</style>
+</head>
+<body>
+<h1 id="title">Decision Matrix</h1>
+<p class="sub" id="subtitle"></p>
+<div id="errors"></div>
+<div class="layout">
+  <div>
+    <h2>Ranking</h2>
+    <svg id="ranking" viewBox="0 0 560 170" role="img" aria-label="Ranking of the options by weighted score"></svg>
+    <h2 id="out-title" hidden>Out Before Scoring</h2>
+    <ul class="plain" id="out" hidden></ul>
+    <h2>Stability</h2>
+    <p id="stability"></p>
+    <ul class="plain" id="changes" hidden></ul>
+    <p id="moved" hidden></p>
+  </div>
+  <div>
+    <h2>Weights</h2>
+    <div id="weights"></div>
+    <button type="button" id="reset">Reset weights</button>
+    <p class="note">Only the shares count: each weight is divided by the sum of all weights. Move a weight to see if the ranking holds.</p>
+  </div>
+</div>
+<h2>Scores</h2>
+<div class="scroll"><table id="scores"><thead></thead><tbody></tbody></table></div>
+<p class="note">A bar in the ranking is the weighted mean of the scores of one option. Point at a bar or at a row of the table to see what each criterion adds to the total.</p>
+<div id="tip" role="status"></div>
+<script>/*__D3__*/</script>
+<script>/*__LIB__*/</script>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  "use strict";
+  // "#light" or "#dark" at the end of the address fixes the theme.
+  var theme = location.hash.replace("#", "");
+  if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  var data = JSON.parse(document.getElementById("data").textContent);
+  var D = ThinkingDecision;
+  var heading = data.title || "Decision Matrix";
+
+  document.title = heading;
+  d3.select("#title").text(heading);
+  d3.select("#subtitle").text(data.subtitle || "");
+
+  function report(lead, messages) {
+    var box = d3.select("#errors").append("div").attr("class", "errors");
+    box.append("strong").text(lead);
+    messages.forEach(function (m) { box.append("div").text(m); });
+  }
+
+  function main() {
+    // The ranking with the weights from the data. The reader changes `weights`; `base` stays.
+    var start = D.matrixRanking(data);
+    if (start.errors.length) report("Not ranked:", start.errors);
+    var options = (Array.isArray(data.options) ? data.options : []).map(String);
+    var criteria = Array.isArray(data.criteria) ? data.criteria : [];
+    var base = start.weights.map(function (w) { return isNaN(w) ? 0 : w; });
+    var weights = base.slice();
+    var was = start.ranked[0];
+    var pct = d3.format(".0%");
+    function f2(value) { return D.fixed(value, 2); }
+    function usable(option) { return !isNaN(start.totals[option]); }
+
+    // All bars start at 0 and share one scale: the ranking bars and the bars in the table cells.
+    var all = d3.merge(options.filter(usable).map(function (o) { return data.scores[o].map(Number); }));
+    var scale = Array.isArray(data.scale) ? data.scale.map(Number) : [];
+    var lo = Math.min(0, d3.min(all) || 0), hi = Math.max(scale[1] > 0 ? scale[1] : 0, d3.max(all) || 0) || 1;
+
+    var knockouts = (Array.isArray(data.knockouts) ? data.knockouts : []).filter(Boolean);
+    d3.select("#out-title").property("hidden", !knockouts.length);
+    d3.select("#out").property("hidden", !knockouts.length).selectAll("li").data(knockouts).join("li")
+      .text(function (k) { return k.option + ": " + (k.reason || "no reason given"); });
+
+    // Stability of the first place for the weights from the data.
+    var changes = D.matrixStability(data);
+    d3.select("#stability").text(!was ? "No option is ranked." : !changes.length ? "The first place holds when any one weight is halved or doubled."
+      : was + " is first with the original weights. The first place changes when one weight is halved or doubled:");
+    d3.select("#changes").property("hidden", !changes.length).selectAll("li").data(changes).join("li")
+      .text(function (c) { return c.criterion + " " + c.change + ": " + c.first + " moves to first place"; });
+
+    // One slider for each weight: 0 to 10 in steps of 0.5. Weights above 10 or fractions of 1 get a range that fits.
+    var top = d3.max(base) || 0;
+    var cap = top > 10 ? Math.pow(10, Math.ceil(Math.log10(top))) : top <= 1 && base.some(function (w) { return w % 0.5; }) ? 1 : 10;
+    var control = d3.select("#weights").selectAll("div").data(criteria).join("div").attr("class", "weight");
+    var label = control.append("label").attr("for", function (c, i) { return "w" + i; });
+    label.append("span").attr("class", "name").text(function (c) { return c.name; });
+    var share = label.append("span").attr("class", "share");
+    var slider = control.append("input").attr("type", "range").attr("id", function (c, i) { return "w" + i; })
+      .attr("min", 0).attr("max", cap).attr("step", cap / 20)
+      .each(function (c, i) { d3.select(this).on("input", function () { weights[i] = +this.value; refresh(); }); });
+    control.filter(function (c) { return c.note; }).append("div").attr("class", "note").text(function (c) { return c.note; });
+    // The sliders are set from the data only here. A slider can round a weight; `weights` keeps the exact number.
+    function setSliders() { slider.property("value", function (c, i) { return base[i]; }); }
+
+    // Score table: options in rows, criteria in columns. It is also the table view of the ranking.
+    var head = d3.select("#scores thead").append("tr");
+    head.append("th").attr("scope", "col").text("Option");
+    var column = head.selectAll("th.criterion").data(criteria).join("th").attr("class", "criterion").attr("scope", "col");
+    column.append("span").text(function (c) { return c.name; });
+    var columnShare = column.append("span").attr("class", "meta");
+    head.append("th").attr("scope", "col").text("Total");
+    var row = d3.select("#scores tbody").selectAll("tr").data(options).join("tr");
+    row.append("th").attr("scope", "row").attr("tabindex", 0).text(function (o) { return o; });
+    row.each(function (o) {
+      var tr = d3.select(this);
+      criteria.forEach(function (c, i) {
+        var cell = tr.append("td");
+        if (!usable(o)) return;
+        var score = Number(data.scores[o][i]);
+        cell.append("span").text(score);
+        cell.append("span").attr("class", "track").append("span").attr("class", "fill")
+          .style("margin-left", (100 * (Math.min(score, 0) - lo)) / (hi - lo) + "%").style("width", (100 * Math.abs(score)) / (hi - lo) + "%");
+      });
+    });
+    var totalCell = row.append("td");
+
+    // Hover text: what each criterion adds to the total of one option.
+    var tip = d3.select("#tip");
+    function showTip(option, x, y) {
+      var parts = D.matrixContributions(data, option, weights);
+      var lines = [option + ": " + (parts.length ? f2(D.matrixTotals(data, weights)[option]) : "no scores") + (start.out.indexOf(option) >= 0 ? " (out before scoring)" : "")];
+      parts.forEach(function (p) { lines.push(f2(p.part) + " from " + p.criterion + " (score " + p.score + ", weight share " + pct(p.share) + ")"); });
+      tip.style("display", "block").style("left", Math.max(4, Math.min(x + 12, window.innerWidth - 300)) + "px").style("top", y + 12 + "px").text(lines.join("\n"));
+    }
+    function hideTip() { tip.style("display", "none"); }
+    row.on("mousemove", function (event, o) { showTip(o, event.clientX, event.clientY); }).on("mouseleave", hideTip);
+    row.select("th").on("focus", function (event, o) { var box = this.getBoundingClientRect(); showTip(o, box.left, box.bottom - 6); }).on("blur", hideTip);
+
+    // A bar from the baseline x0 to the value x1: round at the value end, square at the baseline.
+    function barPath(x0, x1, y, h) {
+      var r = Math.min(4, Math.abs(x1 - x0)), s = x1 < x0 ? -1 : 1, sweep = s > 0 ? 1 : 0;
+      return "M" + x0 + "," + y + "H" + (x1 - s * r) + "a" + r + "," + r + " 0 0 " + sweep + " " + s * r + "," + r + "V" + (y + h - r) +
+        "a" + r + "," + r + " 0 0 " + sweep + " " + -s * r + "," + r + "H" + x0 + "Z";
+    }
+
+    var svg = d3.select("#ranking");
+    function update() {
+      var now = D.matrixRanking(data, weights), sum = d3.sum(weights), first = now.ranked[0];
+      var tied = now.ranked.filter(function (o) { return Math.abs(now.totals[o] - now.totals[first]) < 1e-9; });
+      // The chart is drawn at the width of its column, so the text keeps its size on a phone.
+      var W = Math.max(240, svg.node().parentNode.clientWidth || 560), ROW = 48, H = now.ranked.length * ROW + 24;
+      var x = d3.scaleLinear().domain([lo, hi]).range([lo < 0 ? 46 : 1, W - 48]);
+      svg.attr("viewBox", "0 0 " + W + " " + H).attr("aria-label", heading + ": ranking of " + now.ranked.length + (now.ranked.length === 1 ? " option" : " options") + " by weighted score. " +
+        (first ? (tied.length > 1 ? "Tied for first place: " + tied.join(", ") : "First place: " + first) + ", " + f2(now.totals[first]) : "No option is ranked") + ".");
+      svg.selectAll("*").remove();
+      svg.append("g").attr("class", "axis").attr("transform", "translate(0," + (H - 22) + ")").call(d3.axisBottom(x).ticks(5).tickSize(4));
+      var bar = svg.selectAll("g.bar").data(now.ranked).join("g").attr("class", "bar").attr("transform", function (o, i) { return "translate(0," + i * ROW + ")"; });
+      // The first place is marked with words, not with colour.
+      bar.append("text").attr("class", "name").attr("x", 1).attr("y", 15).text(function (o, i) { return i + 1 + ". " + o; })
+        .filter(function (o) { return tied.indexOf(o) >= 0; }).append("tspan").attr("class", "first").attr("dx", 10)
+        .text(tied.length > 1 ? "tied for first place" : "first place");
+      bar.append("path").attr("class", "fill").attr("d", function (o) { return barPath(x(0), x(now.totals[o]), 22, 16); });
+      bar.append("line").attr("class", "zero").attr("x1", x(0)).attr("x2", x(0)).attr("y1", 19).attr("y2", 41);
+      bar.append("text").attr("class", "value").attr("y", 30).attr("x", function (o) { return x(now.totals[o]) + (now.totals[o] < 0 ? -6 : 6); })
+        .attr("text-anchor", function (o) { return now.totals[o] < 0 ? "end" : "start"; }).text(function (o) { return f2(now.totals[o]); });
+      bar.append("rect").attr("class", "hit").attr("width", W).attr("height", ROW)
+        .on("mousemove", function (event, o) { showTip(o, event.clientX, event.clientY); }).on("mouseleave", hideTip);
+
+      share.text(function (c, i) { return "weight " + +weights[i].toFixed(2) + " · " + pct(sum ? weights[i] / sum : 0); });
+      columnShare.text(function (c, i) { return "weight share " + pct(sum ? weights[i] / sum : 0); });
+      totalCell.text(function (o) { return now.out.indexOf(o) >= 0 ? "out" : isNaN(now.totals[o]) ? "not ranked" : f2(now.totals[o]); });
+
+      // The second line: shown when the reader has moved a weight.
+      var moved = weights.some(function (w, i) { return w !== base[i]; });
+      d3.select("#moved").property("hidden", !moved || !first || !was).text(
+        !sum ? "All weights are 0: there is no ranking. Set one weight above 0."
+        : tied.length > 1 ? "With your weights, " + tied.join(" and ") + " tie for first place."
+        : first === was ? "With your weights, the first place is the same as with the original weights: " + first + "."
+        : "With your weights, " + first + " replaces " + was + " in first place.");
+    }
+    var failed = false;
+    function refresh() {
+      try { update(); } catch (error) {
+        if (!failed) report("The page is not complete:", [String((error && error.message) || error)]);
+        failed = true;
+      }
+    }
+
+    d3.select("#reset").on("click", function () { weights = base.slice(); setSliders(); refresh(); });
+    d3.select(window).on("resize", refresh);
+    setSliders();
+    update();
+  }
+
+  try { main(); } catch (error) { report("The page is not complete:", [String((error && error.message) || error)]); }
+})();
+</script>
+</body>
+</html>

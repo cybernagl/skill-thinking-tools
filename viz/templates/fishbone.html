@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fishbone Diagram</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --panel: #f3f2ee; --ink: #0b0b0b; --ink-2: #52514e; --rule: #d6d5cf;
+    --plus: #2a78d6; --minus: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+      --plus: #3987e5; --minus: #d95926;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+    --plus: #3987e5; --minus: #d95926;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--surface); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  p.sub { margin: 0 0 12px; color: var(--ink-2); }
+  .scroll { overflow-x: auto; }
+  svg { display: block; }
+  svg text { fill: var(--ink); }
+  .spine { fill: none; stroke: var(--plus); stroke-width: 3; }
+  .head { fill: var(--plus); }
+  .bone { fill: none; stroke: var(--plus); stroke-width: 2; stroke-linecap: round; }
+  .twig { fill: none; stroke: var(--plus); stroke-width: 1.25; }
+  .effect { fill: var(--panel); stroke: var(--ink); stroke-width: 1.5; }
+  .name { fill: var(--panel); stroke: var(--rule); }
+  .cause .sub, .cause.out .label { fill: var(--ink-2); }
+  .cause .strike { stroke: var(--ink-2); stroke-width: 1; }
+  .cause .hit { fill: transparent; }
+  .cause:focus { outline: none; }
+  .cause:focus-visible .hit { stroke: var(--ink); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-2); font-size: 13px; margin: 10px 0 0; padding: 0; list-style: none; }
+  .legend b { color: var(--ink); margin-right: 4px; }
+  .note { color: var(--ink-2); font-size: 13px; margin: 10px 0 0; }
+  .errors { border: 1px solid var(--minus); border-radius: 6px; padding: 8px 10px; margin: 0 0 12px; }
+  details { margin-top: 18px; }
+  summary { cursor: pointer; color: var(--ink-2); }
+  table { border-collapse: collapse; margin-top: 8px; font-size: 13px; width: 100%; }
+  th, td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td .sub { color: var(--ink-2); }
+  #tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--surface); padding: 6px 8px; border-radius: 4px; font-size: 13px; max-width: 280px; display: none; z-index: 5; }
+</style>
+</head>
+<body>
+<h1 id="title">Fishbone Diagram</h1>
+<p class="sub" id="subtitle"></p>
+<div id="errors"></div>
+<div class="scroll"><svg id="fish" role="img"></svg></div>
+<ul class="legend">
+  <li><b>✓</b>confirmed</li>
+  <li><b>?</b>probable</li>
+  <li><b>✗</b><s>ruled out</s></li>
+  <li>no mark: open</li>
+</ul>
+<p class="note">Point at a cause, or go to it with the Tab key, to read its status and its note.</p>
+<details>
+  <summary>Causes as a table</summary>
+  <div class="scroll"><table id="table"><thead><tr><th>Category</th><th>Cause</th><th>Status</th><th>Note</th></tr></thead><tbody></tbody></table></div>
+</details>
+<div id="tip" role="status"></div>
+<script>/*__D3__*/</script>
+<script>/*__LIB__*/</script>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  "use strict";
+  // "#light" or "#dark" at the end of the address fixes the theme.
+  var theme = location.hash.replace("#", "");
+  if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  var data = JSON.parse(document.getElementById("data").textContent);
+  var errors = [], name = data.title || "Fishbone Diagram";
+  document.title = name;
+  d3.select("#title").text(name);
+  d3.select("#subtitle").text(data.subtitle || "");
+
+  var MARK = { confirmed: "✓", probable: "?", "ruled out": "✗", open: "" };
+  // SLANT: how far a bone goes sideways for each unit of height. TWIG: shortest twig. CLEAR: free space next to a bone.
+  var SLANT = 0.5, TWIG = 18, CLEAR = 20, LABEL = 150, BETWEEN = 12, RISE = 96, M = 12, EFFECT = 184;
+  var svg = d3.select("#fish"), probe = svg.append("text").attr("visibility", "hidden");
+
+  // Width of a text in SVG units. A page that is not on a screen gets an estimate.
+  function width(text, size, weight) {
+    probe.attr("font-size", size).attr("font-weight", weight).text(text);
+    var w = 0;
+    try { w = probe.node().getComputedTextLength(); } catch (e) { w = 0; }
+    return w || text.length * size * 0.56;
+  }
+  // Breaks a text into lines of a maximum width. Text that does not fit is cut and gets "…".
+  function wrap(text, size, weight, max, most) {
+    var lines = [], line = "";
+    text.split(/\s+/).forEach(function (word) {
+      var next = line ? line + " " + word : word;
+      if (line && width(next, size, weight) > max) { lines.push(line); line = word; } else { line = next; }
+    });
+    if (line) lines.push(line);
+    if (lines.length > most) { lines = lines.slice(0, most); lines[most - 1] += " …"; }
+    return lines.map(function (l) {
+      while (width(l, size, weight) > max && l.length > 2) l = l.slice(0, -2) + "…";
+      return l;
+    });
+  }
+
+  // The model: each cause gets its lines of text and the size of its block.
+  var count = 0, pitch = 130;
+  if (!data.effect) errors.push("The data has no effect.");
+  if (!Array.isArray(data.categories) || !data.categories.length) errors.push("The data has no categories.");
+  var cats = (Array.isArray(data.categories) ? data.categories : []).map(function (raw, i) {
+    if (!raw || typeof raw !== "object") raw = {};
+    if (!raw.name) errors.push("Category " + (i + 1) + " has no name.");
+    var cat = { name: String(raw.name || "Category " + (i + 1)), top: i % 2 === 0, slot: Math.floor(i / 2), causes: [], need: 0 };
+    (Array.isArray(raw.causes) ? raw.causes : []).forEach(function (c) {
+      if (typeof c === "string") c = { label: c };
+      if (!c || typeof c !== "object" || !c.label) { errors.push(cat.name + ": a cause has no label. It is not drawn."); return; }
+      var status = String(c.status || "open").trim().toLowerCase().replace(/[-_]/g, " ");
+      if (!Object.prototype.hasOwnProperty.call(MARK, status)) {
+        errors.push('Unknown status "' + c.status + '" for the cause "' + c.label + '". It is shown as open.');
+        status = "open";
+      }
+      var cause = { label: String(c.label), status: status, note: String(c.note || ""), mark: MARK[status] };
+      cause.subs = (Array.isArray(c.children) ? c.children : []).map(function (s) { return String(s && typeof s === "object" ? s.label || "" : s); });
+      cause.lead = cause.mark ? width(cause.mark, 13, 600) + 5 : 0;
+      cause.lines = wrap(cause.label, 13, 400, LABEL, 3);
+      cause.widths = cause.lines.map(function (l) { return width(l, 13, 400); });
+      cause.small = [];
+      cause.subs.forEach(function (s) { cause.small = cause.small.concat(wrap(s, 12, 400, LABEL, 2)); });
+      cause.w = cause.lead + Math.max(d3.max(cause.widths) || 0, d3.max(cause.small, function (l) { return width(l, 12, 400); }) || 0);
+      cause.h = cause.lines.length * 16 + (cause.small.length ? 3 + cause.small.length * 14 : 0);
+      pitch = Math.max(pitch, cause.w + SLANT * cause.h + TWIG + CLEAR);
+      cat.need += cause.h;
+      cat.causes.push(cause);
+      count++;
+    });
+    return cat;
+  });
+  cats.forEach(function (cat) {
+    cat.label = wrap(cat.name, 13, 600, 190, 1)[0] || "";
+    cat.box = width(cat.label, 13, 600) + 18;
+    pitch = Math.max(pitch, cat.box + 30);
+  });
+  if (errors.length) {
+    var box = d3.select("#errors").append("div").attr("class", "errors");
+    box.append("strong").text("Check the data:");
+    errors.forEach(function (e) { box.append("div").text(e); });
+  }
+
+  // A bone is as long as its causes need. All bones on one side of the spine have the same length.
+  function rise(top) {
+    var side = cats.filter(function (cat) { return cat.top === top; });
+    return side.length ? d3.max(side, function (cat) { return Math.max(RISE, cat.need + (cat.causes.length + 1) * BETWEEN + 20); }) : 0;
+  }
+  var up = rise(true), down = rise(false);
+  var effect = wrap(String(data.effect || "(no effect)"), 14, 600, EFFECT - 24, 5), eh = effect.length * 18 + 22;
+  var Y = M + Math.max(up ? up + 28 : 0, eh / 2), H = Math.ceil(Y + Math.max(down ? down + 28 : 0, eh / 2) + M);
+  var first = M + pitch - CLEAR + SLANT * Math.max(up, down);
+  var headX = first + Math.max(Math.ceil(cats.length / 2) - 1, 0) * pitch + 44, W = Math.ceil(headX + EFFECT + M);
+  svg.attr("width", W).attr("height", H).attr("viewBox", "0 0 " + W + " " + H).attr("aria-label",
+    name + ": fishbone diagram for the effect \"" + (data.effect || "") + "\", " + cats.length + " categories, " + count + " causes");
+
+  svg.append("path").attr("class", "spine").attr("d", "M" + M + "," + Y + "H" + (headX - 9));
+  svg.append("path").attr("class", "head").attr("d", "M" + headX + "," + Y + "l-12,-6v12z");
+  svg.append("rect").attr("class", "effect").attr("x", headX).attr("y", Y - eh / 2).attr("width", EFFECT).attr("height", eh).attr("rx", 6);
+  effect.forEach(function (line, k) {
+    svg.append("text").attr("x", headX + EFFECT / 2).attr("y", Y - (effect.length - 1) * 9 + 5 + k * 18).attr("text-anchor", "middle").attr("font-size", 14).attr("font-weight", 600).text(line);
+  });
+
+  var tip = d3.select("#tip");
+  function show(text, x, y) {
+    tip.style("display", "block").style("left", Math.max(8, Math.min(x, window.innerWidth - 300)) + "px").style("top", y + "px").text(text);
+  }
+
+  cats.forEach(function (cat) {
+    var length = cat.top ? up : down, sign = cat.top ? -1 : 1, jx = first + cat.slot * pitch;
+    var tipX = jx - SLANT * length, tipY = Y + sign * length;
+    function bone(y) { return jx - SLANT * Math.abs(y - Y); }
+    var g = svg.append("g").attr("class", "category");
+    g.append("path").attr("class", "bone").attr("d", "M" + jx + "," + Y + "L" + tipX + "," + tipY);
+    var ny = cat.top ? tipY - 28 : tipY + 6;
+    g.append("rect").attr("class", "name").attr("x", tipX - cat.box / 2).attr("y", ny).attr("width", cat.box).attr("height", 22).attr("rx", 4);
+    g.append("text").attr("x", tipX).attr("y", ny + 15.5).attr("text-anchor", "middle").attr("font-size", 13).attr("font-weight", 600).text(cat.label);
+
+    // The causes are spread along the bone, from top to bottom in the order of the data.
+    var free = (length - 20 - cat.need) / (cat.causes.length + 1);
+    var y = (cat.top ? tipY + 6 : Y + 14) + free;
+    cat.causes.forEach(function (c) {
+      var ty = y + 8, right = bone(ty) - TWIG;
+      // Below the spine the bone goes to the left on its way down: the block must stay clear of it.
+      if (!cat.top) right = Math.min(right, bone(y + c.h) - 8);
+      var left = right - c.w, tx = left + c.lead;
+      var cg = g.append("g").attr("class", "cause" + (c.status === "ruled out" ? " out" : "")).attr("tabindex", 0);
+      cg.append("rect").attr("class", "hit").attr("x", left - 4).attr("y", y - 2).attr("width", c.w + 8).attr("height", c.h + 4).attr("rx", 3);
+      cg.append("path").attr("class", "twig").attr("d", "M" + bone(ty) + "," + ty + "H" + (tx + c.widths[0] + 5));
+      if (c.mark) cg.append("text").attr("x", left).attr("y", y + 12.5).attr("font-size", 13).attr("font-weight", 600).text(c.mark);
+      c.lines.forEach(function (line, k) {
+        cg.append("text").attr("class", "label").attr("x", tx).attr("y", y + 12.5 + k * 16).attr("font-size", 13).text(line);
+        if (c.status === "ruled out") cg.append("line").attr("class", "strike").attr("x1", tx).attr("x2", tx + c.widths[k]).attr("y1", y + 8.5 + k * 16).attr("y2", y + 8.5 + k * 16);
+      });
+      c.small.forEach(function (line, k) {
+        cg.append("text").attr("class", "sub").attr("x", tx).attr("y", y + c.lines.length * 16 + 13.5 + k * 14).attr("font-size", 12).text(line);
+      });
+      var text = c.label + ". Status: " + c.status + (c.note ? ". " + c.note : "");
+      cg.attr("aria-label", text)
+        .on("mousemove", function (event) { show(text, event.clientX + 12, event.clientY + 12); })
+        .on("focus", function () { var r = this.getBoundingClientRect(); show(text, r.left, r.bottom + 6); })
+        .on("mouseleave blur", function () { tip.style("display", "none"); });
+      y += c.h + free;
+    });
+  });
+
+  var list = [];
+  cats.forEach(function (cat) { cat.causes.forEach(function (c) { list.push({ cat: cat.name, cause: c }); }); });
+  var rows = d3.select("#table tbody").selectAll("tr").data(list).join("tr");
+  rows.append("td").text(function (r) { return r.cat; });
+  rows.append("td").each(function (r) {
+    var cell = d3.select(this);
+    cell.append("div").text(r.cause.label);
+    r.cause.subs.forEach(function (s) { cell.append("div").attr("class", "sub").text(s); });
+  });
+  rows.append("td").text(function (r) { return (r.cause.mark ? r.cause.mark + " " : "") + r.cause.status; });
+  rows.append("td").text(function (r) { return r.cause.note; });
+})();
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 ---
 name: thinking-tools
-description: Use when the user names a thinking tool, framework, or mental model (for example Cynefin, issue tree, pre-mortem, evaporating cloud, decision matrix, Ishikawa, OODA, Minto pyramid, Wardley map), asks which framework, method, or mental model to use, asks in so many words for a structured, systematic, or framework-based approach to a problem or decision, or asks for the agenda of a thinking, decision, or problem-solving workshop. Not for an ordinary request to decide, diagnose, debug, plan, or write that does not ask for a method. Also applies to the German terms Denkwerkzeug, Denkmodell, Entscheidungsmatrix, Ursachenanalyse, and Konfliktwolke.
+description: Use when the user names a thinking tool, framework, or mental model, or asks for the diagram of one (for example Cynefin, issue tree, pre-mortem, evaporating cloud, decision matrix, decision tree, fishbone or Ishikawa diagram, causal loop diagram, OODA, Minto pyramid, Wardley map), asks which framework, method, or mental model to use, asks in so many words for a structured, systematic, or framework-based approach to a problem or decision, or asks for the agenda of a thinking, decision, or problem-solving workshop. Not for an ordinary request to decide, diagnose, debug, plan, or write that does not ask for a method, and not for diagrams of software, data, or processes. Also applies to the German terms Denkwerkzeug, Denkmodell, Entscheidungsmatrix, Ursachenanalyse, Fischgrätdiagramm, and Konfliktwolke.
 ---
 
 # Thinking Tools
@@ -38,6 +38,8 @@ Related skills: `zwicky-box` for a solution space with several dimensions, `disc
 2. The artifact of the tool (matrix, tree, diagram, or list), filled with the facts of the case. Mark each entry that is your assumption and not a stated fact
 3. What the tool showed that changes the recommendation. If it changed nothing, say so
 4. The checks or data that can overturn the result
+
+If the artifact of the tool is a picture (a diagram, a tree, a map), read `visuals.md`: a Mermaid block when the answer is Markdown, a D3 page when the answer is HTML.
 
 ## Router
 

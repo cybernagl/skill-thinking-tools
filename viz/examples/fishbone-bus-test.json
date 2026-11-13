@@ -1,0 +1,13 @@
+{
+  "title": "Bus Test Failures",
+  "subtitle": "Candidate causes. A mark shows which causes the data confirmed or ruled out",
+  "effect": "4% of controllers fail the bus test",
+  "categories": [
+    { "name": "People", "causes": [ { "label": "New operator on the evening shift", "status": "probable" } ] },
+    { "name": "Machine", "causes": [ { "label": "Test fixture not fully seated", "status": "probable" } ] },
+    { "name": "Material", "causes": [ { "label": "New solder paste supplier", "status": "ruled out", "note": "Other shifts use the same paste" }, { "label": "New transceiver batch", "status": "open" } ] },
+    { "name": "Method", "causes": [ { "label": "Test starts before bus initialisation", "status": "open", "children": [ "Only firmware 3.2 is slow to start" ] } ] },
+    { "name": "Measurement", "causes": [ { "label": "Retests are not logged", "status": "confirmed" } ] },
+    { "name": "Environment", "causes": [ { "label": "Static discharge at the station", "status": "open" } ] }
+  ]
+}

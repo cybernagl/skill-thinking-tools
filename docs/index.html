@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thinking Tools Samples</title>
+<style>
+  :root { color-scheme: light; --surface: #fcfcfb; --panel: #f3f2ee; --ink: #0b0b0b; --ink-2: #52514e; --rule: #d6d5cf; --link: #1c5cab; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { color-scheme: dark; --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39; --link: #86b6ef; }
+  }
+  :root[data-theme="dark"] { color-scheme: dark; --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39; --link: #86b6ef; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 48px; background: var(--surface); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  p { margin: 0 0 14px; color: var(--ink-2); max-width: 68ch; }
+  a { color: var(--link); }
+  ul.grid { list-style: none; margin: 24px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  ul.grid a { display: block; height: 100%; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); padding: 12px; color: var(--ink); text-decoration: none; }
+  ul.grid a:hover, ul.grid a:focus-visible { border-color: var(--ink); }
+  ul.grid img { width: 100%; height: 170px; object-fit: cover; object-position: left top; border-radius: 4px; border: 1px solid var(--rule); background: #fcfcfb; display: block; }
+  ul.grid strong { display: block; margin: 10px 0 2px; }
+  ul.grid span { color: var(--ink-2); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Thinking Tools Samples</h1>
+  <p>Live samples of the pages that the <a href="https://github.com/cybernagl/skill-thinking-tools">thinking-tools skill</a> builds. Each page is one HTML file with D3 inside it and works offline. The cases are made up.</p>
+  <p>The Mermaid forms of the same tools, for Markdown notes, are in the <a href="https://github.com/cybernagl/skill-thinking-tools/blob/main/docs/gallery.md">gallery</a>.</p>
+  <ul class="grid">
+    <li><a href="samples/loop-map.html"><img src="img/loop-map.png" alt=""><strong>Loop map</strong><span>Causal loops on a circle. Select a loop to trace it.</span></a></li>
+    <li><a href="samples/decision-matrix.html"><img src="img/decision-matrix.png" alt=""><strong>Decision matrix</strong><span>Move the weights and see if the ranking holds.</span></a></li>
+    <li><a href="samples/decision-tree.html"><img src="img/decision-tree.png" alt=""><strong>Decision tree</strong><span>Move the probabilities and see if the best choice holds.</span></a></li>
+    <li><a href="samples/issue-tree.html"><img src="img/issue-tree.png" alt=""><strong>Statement tree</strong><span>An issue tree with branches that collapse.</span></a></li>
+    <li><a href="samples/fishbone.html"><img src="img/fishbone.png" alt=""><strong>Fishbone</strong><span>Causes with a status: confirmed, probable, open, ruled out.</span></a></li>
+    <li><a href="samples/wardley-map.html"><img src="img/wardley-map.png" alt=""><strong>Wardley map</strong><span>Components by visibility and evolution.</span></a></li>
+    <li><a href="samples/impact-effort.html"><img src="img/impact-effort.png" alt=""><strong>Impact and effort</strong><span>Points on two axes. Estimates have a hollow mark.</span></a></li>
+  </ul>
+</main>
+</body>
+</html>

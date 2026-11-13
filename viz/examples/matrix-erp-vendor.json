@@ -1,0 +1,17 @@
+{
+  "title": "ERP Vendor Choice",
+  "subtitle": "Higher scores are better. Scale 1 to 5",
+  "scale": [1, 5],
+  "options": ["Vendor A", "Vendor B", "Vendor C"],
+  "criteria": [
+    { "name": "Fit with the shop floor", "weight": 5, "note": "Scored from the two-day trial with shift leads" },
+    { "name": "Implementation risk", "weight": 3, "note": "5 means low risk. Reference calls with three customers" },
+    { "name": "Cost over five years", "weight": 2, "note": "5 means lowest cost. Vendor quotes" }
+  ],
+  "scores": {
+    "Vendor A": [4, 2, 5],
+    "Vendor B": [3, 5, 2],
+    "Vendor C": [5, 3, 2]
+  },
+  "knockouts": []
+}

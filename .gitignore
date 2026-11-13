@@ -6,3 +6,5 @@
 *.key
 credentials*
 research_notes/
+__pycache__/
+*.pyc

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loop Map</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --panel: #f3f2ee; --ink: #0b0b0b; --ink-2: #52514e; --rule: #d6d5cf;
+    --plus: #2a78d6; --minus: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+      --plus: #3987e5; --minus: #d95926;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+    --plus: #3987e5; --minus: #d95926;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--surface); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  p.sub { margin: 0 0 12px; color: var(--ink-2); }
+  .layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(260px, 2fr); gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+  svg { width: 100%; height: auto; display: block; }
+  .ring { fill: none; stroke: var(--rule); stroke-width: 1; }
+  .node circle { fill: var(--ink); }
+  .node text { fill: var(--ink); font-size: 14px; }
+  .link path.line { fill: none; stroke-width: 2; }
+  .link.plus path.line { stroke: var(--plus); }
+  .link.minus path.line { stroke: var(--minus); stroke-dasharray: 7 5; }
+  .link .head { stroke: none; }
+  .link.plus .head { fill: var(--plus); }
+  .link.minus .head { fill: var(--minus); }
+  .link .hit { fill: none; stroke: transparent; stroke-width: 16; cursor: default; }
+  .link .sign circle { fill: var(--surface); stroke-width: 1.5; }
+  .link.plus .sign circle { stroke: var(--plus); }
+  .link.minus .sign circle { stroke: var(--minus); }
+  .link .sign text { fill: var(--ink); font-size: 13px; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+  .link .delay line { stroke: var(--ink); stroke-width: 2; }
+  .dim .link:not(.on), .dim .node:not(.on) { opacity: 0.13; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-2); font-size: 13px; margin: 6px 0 0; padding: 0; list-style: none; }
+  .legend svg { width: 44px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  h2 { font-size: 15px; margin: 0 0 8px; }
+  ol.loops { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  ol.loops button { width: 100%; text-align: left; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 10px; cursor: pointer; }
+  ol.loops button[aria-pressed="true"] { outline: 2px solid var(--ink); }
+  ol.loops .name { font-weight: 600; }
+  ol.loops .meta { display: block; color: var(--ink-2); font-size: 13px; }
+  .note { color: var(--ink-2); font-size: 13px; margin: 10px 0 0; }
+  .errors { border: 1px solid var(--minus); border-radius: 6px; padding: 8px 10px; margin: 0 0 12px; }
+  details { margin-top: 18px; }
+  summary { cursor: pointer; color: var(--ink-2); }
+  table { border-collapse: collapse; margin-top: 8px; font-size: 13px; width: 100%; }
+  th, td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  #tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--surface); padding: 6px 8px; border-radius: 4px; font-size: 13px; max-width: 280px; display: none; z-index: 5; }
+</style>
+</head>
+<body>
+<h1 id="title">Loop Map</h1>
+<p class="sub" id="subtitle"></p>
+<div id="errors"></div>
+<div class="layout">
+  <div>
+    <svg id="map" viewBox="0 0 780 600" role="img"></svg>
+    <ul class="legend">
+      <li><svg viewBox="0 0 44 12"><line x1="2" y1="6" x2="42" y2="6" stroke="var(--plus)" stroke-width="2"/></svg>+ same direction</li>
+      <li><svg viewBox="0 0 44 12"><line x1="2" y1="6" x2="42" y2="6" stroke="var(--minus)" stroke-width="2" stroke-dasharray="7 5"/></svg>&minus; opposite direction</li>
+      <li><svg viewBox="0 0 44 12"><line x1="18" y1="1" x2="18" y2="11" stroke="var(--ink)" stroke-width="2"/><line x1="24" y1="1" x2="24" y2="11" stroke="var(--ink)" stroke-width="2"/></svg>delay</li>
+    </ul>
+  </div>
+  <div>
+    <h2 id="loops-title">Feedback Loops</h2>
+    <ol class="loops" id="loops"></ol>
+    <p class="note">R: reinforcing, an even number of opposite links. B: balancing, an odd number. Select a loop to trace it on the map.</p>
+  </div>
+</div>
+<details>
+  <summary>Links as a table</summary>
+  <table id="table"><thead><tr><th>From</th><th>To</th><th>Sign</th><th>Delay</th><th>Basis</th><th>Note</th></tr></thead><tbody></tbody></table>
+</details>
+<div id="tip" role="status"></div>
+<script>/*__D3__*/</script>
+<script>/*__LIB__*/</script>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  "use strict";
+  // "#light" or "#dark" at the end of the address fixes the theme.
+  var theme = location.hash.replace("#", "");
+  if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  var data = JSON.parse(document.getElementById("data").textContent);
+  var model = ThinkingLoops.normalise(data);
+  var nodes = model.nodes, links = model.links;
+  var found = ThinkingLoops.findLoops(nodes, links, 200);
+  var loops = found.loops;
+
+  document.title = data.title || "Loop Map";
+  d3.select("#title").text(data.title || "Loop Map");
+  d3.select("#subtitle").text(data.subtitle || "");
+  if (model.errors.length) {
+    var box = d3.select("#errors").append("div").attr("class", "errors");
+    box.append("strong").text("Not drawn:");
+    model.errors.forEach(function (e) { box.append("div").text(e); });
+  }
+
+  var W = 780, H = 600, cx = W / 2, cy = H / 2, R = 218, inner = R - 14;
+  var svg = d3.select("#map").attr("aria-label",
+    (data.title || "Loop map") + ": " + nodes.length + " elements, " + links.length + " links, " + loops.length + " feedback loops");
+  svg.append("circle").attr("class", "ring").attr("cx", cx).attr("cy", cy).attr("r", R);
+
+  function angle(i) { return -Math.PI / 2 + (2 * Math.PI * i) / Math.max(nodes.length, 1); }
+  function at(i, r) { return [cx + r * Math.cos(angle(i)), cy + r * Math.sin(angle(i))]; }
+  function wrap(label) {
+    var words = label.split(/\s+/), lines = [], line = "";
+    words.forEach(function (w) {
+      if ((line + " " + w).trim().length > 16 && line) { lines.push(line); line = w; }
+      else { line = (line + " " + w).trim(); }
+    });
+    if (line) lines.push(line);
+    return lines.slice(0, 3);
+  }
+
+  // A pair of links in both directions gets two separate curves.
+  var pair = {};
+  links.forEach(function (l) { pair[l.from + ">" + l.to] = true; });
+
+  // Links that meet at one element are spread along the ring, so that the arrowheads do not sit on each other.
+  var TAU = 2 * Math.PI, ends = nodes.map(function () { return []; });
+  links.forEach(function (l, i) {
+    ends[l.from].push({ link: i, side: "from", other: l.to });
+    ends[l.to].push({ link: i, side: "to", other: l.from });
+  });
+  var endAngle = links.map(function () { return {}; });
+  ends.forEach(function (list, node) {
+    function rel(e) { return (((angle(e.other) - angle(node)) % TAU) + TAU) % TAU; }
+    list.sort(function (a, b) { return rel(b) - rel(a) || (a.side < b.side ? -1 : 1); });
+    var step = Math.min(0.075, 0.4 / Math.max(list.length, 1));
+    var incoming = 0;
+    list.forEach(function (e, k) {
+      endAngle[e.link][e.side] = angle(node) + (k - (list.length - 1) / 2) * step;
+      // The sign marks of links that end at the same element sit at different distances from it.
+      if (e.side === "to") endAngle[e.link].signAt = [0.74, 0.6, 0.85][incoming++ % 3];
+    });
+  });
+  function polar(a, r) { return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; }
+
+  function geometry(l, index) {
+    var p0 = polar(endAngle[index].from, inner), p1 = polar(endAngle[index].to, inner);
+    var mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2;
+    var chord = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
+    var pull = 0.25 + 0.3 * (1 - chord / (2 * inner));
+    var c = [mx + (cx - mx) * pull, my + (cy - my) * pull];
+    if (pair[l.to + ">" + l.from]) {
+      var nx = -(p1[1] - p0[1]) / (chord || 1), ny = (p1[0] - p0[0]) / (chord || 1);
+      c = [c[0] + nx * 26, c[1] + ny * 26];
+    }
+    function point(t) {
+      var u = 1 - t;
+      return [u * u * p0[0] + 2 * u * t * c[0] + t * t * p1[0], u * u * p0[1] + 2 * u * t * c[1] + t * t * p1[1]];
+    }
+    function tangent(t) {
+      var u = 1 - t;
+      var x = 2 * u * (c[0] - p0[0]) + 2 * t * (p1[0] - c[0]), y = 2 * u * (c[1] - p0[1]) + 2 * t * (p1[1] - c[1]);
+      var n = Math.hypot(x, y) || 1;
+      return [x / n, y / n];
+    }
+    return { p0: p0, p1: p1, c: c, point: point, tangent: tangent };
+  }
+
+  var linkG = svg.append("g").selectAll("g").data(links).join("g")
+    .attr("class", function (l) { return "link " + (l.sign === "-" ? "minus" : "plus"); });
+  linkG.each(function (l, index) {
+    var g = d3.select(this), geo = geometry(l, index);
+    var d = "M" + geo.p0 + " Q" + geo.c + " " + geo.p1;
+    g.append("path").attr("class", "line").attr("d", d);
+    var tip = geo.p1, dir = geo.tangent(1);
+    var left = [tip[0] - dir[0] * 12 - dir[1] * 5, tip[1] - dir[1] * 12 + dir[0] * 5];
+    var right = [tip[0] - dir[0] * 12 + dir[1] * 5, tip[1] - dir[1] * 12 - dir[0] * 5];
+    g.append("path").attr("class", "head").attr("d", "M" + tip + " L" + left + " L" + right + " Z");
+    if (l.delay) {
+      var m = geo.point(0.42), t = geo.tangent(0.42), dg = g.append("g").attr("class", "delay");
+      [-3, 3].forEach(function (off) {
+        var bx = m[0] + t[0] * off, by = m[1] + t[1] * off;
+        dg.append("line").attr("x1", bx - t[1] * 7).attr("y1", by + t[0] * 7).attr("x2", bx + t[1] * 7).attr("y2", by - t[0] * 7);
+      });
+    }
+    var s = geo.point(endAngle[index].signAt || 0.74), sg = g.append("g").attr("class", "sign").attr("transform", "translate(" + s + ")");
+    sg.append("circle").attr("r", 9);
+    sg.append("text").text(l.sign === "-" ? "−" : "+");
+    g.append("path").attr("class", "hit").attr("d", d);
+  });
+
+  var nodeG = svg.append("g").selectAll("g").data(nodes).join("g").attr("class", "node");
+  nodeG.each(function (n, i) {
+    var g = d3.select(this), p = at(i, R), q = at(i, R + 14);
+    g.append("circle").attr("cx", p[0]).attr("cy", p[1]).attr("r", 5);
+    var cos = Math.cos(angle(i)), sin = Math.sin(angle(i));
+    var anchor = Math.abs(cos) < 0.25 ? "middle" : cos > 0 ? "start" : "end";
+    var lines = wrap(n.label);
+    var text = g.append("text").attr("text-anchor", anchor);
+    var top = q[1] + (sin < -0.5 ? -(lines.length - 1) * 17 : sin > 0.5 ? 12 : -(lines.length - 1) * 8.5 + 5);
+    lines.forEach(function (line, k) { text.append("tspan").attr("x", q[0]).attr("y", top + k * 17).text(line); });
+  });
+
+  // Hover text for one link.
+  var tip = d3.select("#tip");
+  linkG.on("mousemove", function (event, l) {
+    var parts = [nodes[l.from].label + " → " + nodes[l.to].label + ": " + (l.sign === "-" ? "opposite direction" : "same direction")];
+    if (l.delay) parts.push("with a delay");
+    if (l.note) parts.push(l.note);
+    if (l.basis) parts.push("Basis: " + l.basis);
+    tip.style("display", "block").style("left", Math.min(event.clientX + 12, window.innerWidth - 300) + "px").style("top", event.clientY + 12 + "px").text(parts.join(". "));
+  }).on("mouseleave", function () { tip.style("display", "none"); });
+
+  // Loop list with tracing.
+  var selected = null;
+  function trace(loop) {
+    if (!loop) { svg.classed("dim", false); linkG.classed("on", false); nodeG.classed("on", false); return; }
+    svg.classed("dim", true);
+    linkG.classed("on", function (l, i) { return loop.links.indexOf(i) >= 0; });
+    nodeG.classed("on", function (n, i) { return loop.nodes.indexOf(i) >= 0; });
+  }
+  d3.select("#loops-title").text(loops.length ? "Feedback Loops (" + loops.length + ")" : "No Feedback Loop Found");
+  var items = d3.select("#loops").selectAll("li").data(loops).join("li").append("button").attr("type", "button").attr("aria-pressed", "false");
+  items.append("span").attr("class", "name").text(function (lp) { return lp.name + (lp.type === "R" ? " reinforcing" : " balancing"); });
+  items.append("span").attr("class", "meta").text(function (lp) {
+    return lp.text + " · " + lp.opposite + " opposite" + (lp.delays ? " · " + lp.delays + " delayed" : "");
+  });
+  items.on("mouseenter focus", function (event, lp) { if (!selected) trace(lp); })
+    .on("mouseleave blur", function () { if (!selected) trace(null); })
+    .on("click", function (event, lp) {
+      selected = selected === lp ? null : lp;
+      items.attr("aria-pressed", function (d) { return d === selected ? "true" : "false"; });
+      trace(selected);
+    });
+  if (found.capped) d3.select("#loops").append("li").attr("class", "note").text("More than 200 loops: the list is cut. Use fewer elements.");
+
+  var rows = d3.select("#table tbody").selectAll("tr").data(links).join("tr");
+  rows.append("td").text(function (l) { return nodes[l.from].label; });
+  rows.append("td").text(function (l) { return nodes[l.to].label; });
+  rows.append("td").text(function (l) { return l.sign === "-" ? "− opposite" : "+ same"; });
+  rows.append("td").text(function (l) { return l.delay ? "yes" : ""; });
+  rows.append("td").text(function (l) { return l.basis; });
+  rows.append("td").text(function (l) { return l.note; });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --panel: #f3f2ee; --ink: #0b0b0b; --ink-2: #52514e; --rule: #d6d5cf;
+    --plus: #2a78d6; --minus: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+      --plus: #3987e5; --minus: #d95926;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+    --plus: #3987e5; --minus: #d95926;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--surface); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  p.sub { margin: 0 0 12px; color: var(--ink-2); }
+  .scroll { overflow-x: auto; }
+  #map { display: block; width: 100%; min-width: 640px; max-width: 900px; height: auto; }
+  #map text { fill: var(--ink); }
+  #map text.soft { fill: var(--ink-2); }
+  .frame { fill: none; stroke: var(--rule); }
+  .grid { stroke: var(--rule); }
+  .centre { stroke: var(--ink-2); }
+  .dep { stroke: var(--ink-2); stroke-width: 1; }
+  .move { fill: none; stroke: var(--plus); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .movehead { fill: var(--plus); }
+  .dot { fill: var(--plus); stroke: var(--plus); stroke-width: 2; }
+  .dot.hollow { fill: var(--surface); }
+  .point text { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+  .point .hit { fill: transparent; }
+  .point:focus { outline: none; }
+  .point:focus-visible .hit { stroke: var(--ink); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-2); font-size: 13px; margin: 8px 0 0; padding: 0; list-style: none; }
+  .legend svg { width: 30px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .note { color: var(--ink-2); font-size: 13px; margin: 10px 0 0; }
+  .errors { border: 1px solid var(--minus); border-radius: 6px; padding: 8px 10px; margin: 0 0 12px; }
+  details { margin-top: 18px; }
+  summary { cursor: pointer; color: var(--ink-2); }
+  table { border-collapse: collapse; margin-top: 8px; font-size: 13px; width: 100%; }
+  th, td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  #tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--surface); padding: 6px 8px; border-radius: 4px; font-size: 13px; max-width: 280px; display: none; z-index: 5; }
+</style>
+</head>
+<body>
+<h1 id="title">Map</h1>
+<p class="sub" id="subtitle"></p>
+<div id="errors"></div>
+<div class="scroll"><svg id="map" viewBox="0 0 760 540" role="img"></svg></div>
+<ul class="legend" id="legend"></ul>
+<p class="note">Point at a mark, or go to it with the Tab key, to read its values and its note.</p>
+<details>
+  <summary>Points as a table</summary>
+  <div class="scroll"><table id="table"><thead><tr></tr></thead><tbody></tbody></table></div>
+</details>
+<div id="tip" role="status"></div>
+<script>/*__D3__*/</script>
+<script>/*__LIB__*/</script>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  "use strict";
+  // "#light" or "#dark" at the end of the address fixes the theme.
+  var theme = location.hash.replace("#", "");
+  if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  var data = JSON.parse(document.getElementById("data").textContent);
+  var errors = [], wardley = data.kind === "wardley", name = data.title || (wardley ? "Wardley Map" : "Map");
+  document.title = name;
+  d3.select("#title").text(name);
+  d3.select("#subtitle").text(data.subtitle || "");
+  if (data.kind && !wardley && data.kind !== "quadrant") errors.push('Unknown kind "' + data.kind + '". The points are drawn on a quadrant map.');
+
+  function number(v) { return typeof v === "number" && isFinite(v); }
+  function tidy(v) { return number(v) ? String(Math.round(v * 1000) / 1000) : ""; }
+  var range = Array.isArray(data.scale) && number(data.scale[0]) && number(data.scale[1]) && data.scale[0] < data.scale[1] ? data.scale : [0, 1];
+  var lo = range[0], hi = range[1];
+  // "x" and "y" in the data can change the text on the axes: a text, or an object with label, low, and high.
+  function axis(raw, base) {
+    var a = typeof raw === "string" ? { label: raw } : raw && typeof raw === "object" ? raw : {};
+    return { label: String(a.label || base.label), low: String(a.low || base.low || ""), high: String(a.high || base.high || "") };
+  }
+  var ax = axis(data.x, wardley ? { label: "Evolution" } : { label: "x" });
+  var ay = axis(data.y, wardley ? { label: "Visibility to the user", low: "invisible", high: "visible" } : { label: "y" });
+
+  // The model: points with a position are drawn. A point with no position goes to the error box.
+  var byName = {}, drawn = [];
+  var points = (Array.isArray(data.points) ? data.points : []).map(function (raw, i) {
+    if (!raw || typeof raw !== "object") raw = {};
+    var p = { id: String(raw.id || raw.label || "Point " + (i + 1)), label: String(raw.label || raw.id || "Point " + (i + 1)), x: raw.x, y: raw.y, note: String(raw.note || ""), estimate: !!raw.estimate, anchor: wardley && !!raw.anchor, move: null, ok: true };
+    ["x", "y"].forEach(function (key) {
+      if (!number(raw[key]) || raw[key] < lo || raw[key] > hi) { p.ok = false; errors.push(p.id + " has no " + key + " between " + lo + " and " + hi); }
+    });
+    if (raw.moveTo !== undefined && raw.moveTo !== null) {
+      if (number(raw.moveTo) && raw.moveTo >= lo && raw.moveTo <= hi) p.move = raw.moveTo;
+      else errors.push(p.id + ' has a "moveTo" that is not between ' + lo + " and " + hi);
+    }
+    if (byName[p.id] === undefined) byName[p.id] = p;
+    if (p.ok) drawn.push(p);
+    return p;
+  });
+  points.forEach(function (p) { if (byName[p.label] === undefined) byName[p.label] = p; });
+  var links = [];
+  (Array.isArray(data.links) ? data.links : []).forEach(function (raw) {
+    var ends = ["from", "to"].map(function (key) {
+      var p = byName[String(raw && raw[key])];
+      if (!p) errors.push("A link names a point that is not in the list: " + (raw && raw[key]));
+      return p;
+    });
+    if (ends[0] && ends[1] && ends[0].ok && ends[1].ok) links.push(ends);
+  });
+  if (errors.length) {
+    var box = d3.select("#errors").append("div").attr("class", "errors");
+    box.append("strong").text("Not drawn:");
+    errors.forEach(function (e) { box.append("div").text(e); });
+  }
+
+  var W = 760, H = 540, L = 52, R = 14, T = 14, B = 50, right = W - R, bottom = H - B, midX = (L + right) / 2, midY = (T + bottom) / 2;
+  // On a quadrant map the top and the bottom of the frame are kept free for the names of the fields.
+  var edge = wardley ? 16 : 34;
+  var X = d3.scaleLinear().domain([lo, hi]).range([L + 16, right - 16]), Y = d3.scaleLinear().domain([lo, hi]).range([bottom - edge, T + edge]);
+  var svg = d3.select("#map"), probe = svg.append("text").attr("visibility", "hidden");
+  svg.attr("aria-label", name + ": " + (wardley ? "Wardley map" : "map with four fields") + ", " + drawn.length + " points" +
+    (links.length ? ", " + links.length + " dependency lines" : "") + ". Across: " + ax.label + ". Up: " + ay.label);
+
+  // Width of a text in SVG units. A page that is not on a screen gets an estimate.
+  function width(text, size, weight) {
+    probe.attr("font-size", size).attr("font-weight", weight).text(text);
+    var w = 0;
+    try { w = probe.node().getComputedTextLength(); } catch (e) { w = 0; }
+    return w || text.length * size * 0.56;
+  }
+  // Breaks a text into lines of a maximum width. Text that does not fit is cut and gets "…".
+  function wrap(text, size, weight, max, most) {
+    var lines = [], line = "";
+    text.split(/\s+/).forEach(function (word) {
+      var next = line ? line + " " + word : word;
+      if (line && width(next, size, weight) > max) { lines.push(line); line = word; } else { line = next; }
+    });
+    if (line) lines.push(line);
+    if (lines.length > most) { lines = lines.slice(0, most); lines[most - 1] += " …"; }
+    return lines.map(function (l) {
+      while (width(l, size, weight) > max && l.length > 2) l = l.slice(0, -2) + "…";
+      return l;
+    });
+  }
+  // Places that a label must not cover, as [left, top, right, bottom]: marks, arrows, and the names of the fields.
+  var taken = [];
+  function word(text, x, y, anchor, soft, weight, turn) {
+    var t = svg.append("text").attr("class", soft ? "soft" : null).attr("text-anchor", anchor).attr("font-size", 13).attr("font-weight", weight || 400).text(text);
+    if (turn) t.attr("transform", "translate(" + x + "," + y + ") rotate(-90)"); else t.attr("x", x).attr("y", y);
+  }
+
+  svg.append("rect").attr("class", "frame").attr("x", L).attr("y", T).attr("width", right - L).attr("height", bottom - T);
+  if (wardley) {
+    var stages = ["Genesis", "Custom-built", "Product", "Commodity"], edges = [L, X(lo + (hi - lo) / 4), X((lo + hi) / 2), X(hi - (hi - lo) / 4), right];
+    stages.forEach(function (stage, k) {
+      if (k) svg.append("line").attr("class", "grid").attr("x1", edges[k]).attr("x2", edges[k]).attr("y1", T).attr("y2", bottom);
+      word(stage, (edges[k] + edges[k + 1]) / 2, bottom + 17, "middle", true);
+    });
+  } else {
+    svg.append("line").attr("class", "centre").attr("x1", midX).attr("x2", midX).attr("y1", T).attr("y2", bottom);
+    svg.append("line").attr("class", "centre").attr("x1", L).attr("x2", right).attr("y1", midY).attr("y2", midY);
+    var fields = data.quadrants && typeof data.quadrants === "object" ? data.quadrants : {};
+    [["topLeft", L + 8, T + 18, "start"], ["topRight", right - 8, T + 18, "end"], ["bottomLeft", L + 8, bottom - 9, "start"], ["bottomRight", right - 8, bottom - 9, "end"]].forEach(function (f) {
+      if (!fields[f[0]]) return;
+      var text = wrap(String(fields[f[0]]), 13, 600, (right - L) / 2 - 16, 1)[0], w = width(text, 13, 600), x0 = f[3] === "start" ? f[1] : f[1] - w;
+      word(text, f[1], f[2], f[3], true, 600);
+      taken.push([x0 - 4, f[2] - 13, x0 + w + 4, f[2] + 5]);
+    });
+    word(ax.low, L, bottom + 17, "start", true);
+    word(ax.high, right, bottom + 17, "end", true);
+  }
+  word(ax.label, midX, bottom + 38, "middle", false, 600);
+  word(ay.low, L - 8, bottom, "start", true, 400, true);
+  word(ay.high, L - 8, T, "end", true, 400, true);
+  word(ay.label, L - 28, midY, "middle", false, 600, true);
+
+  // Dependency lines and arrows of expected evolution lie under the points.
+  drawn.forEach(function (p) {
+    p.cx = X(p.x); p.cy = Y(p.y);
+    p.lines = wrap(p.label, 13, p.anchor ? 700 : 400, 150, 2);
+    p.w = d3.max(p.lines, function (l) { return width(l, 13, p.anchor ? 700 : 400); }) || 0;
+    p.h = p.lines.length * 15;
+    p.mark = [p.cx - 8, p.cy - 8, p.cx + 8, p.cy + 8];
+    taken.push(p.mark);
+  });
+  var segments = links.map(function (l) { return [l[0].cx, l[0].cy, l[1].cx, l[1].cy]; });
+  svg.append("g").selectAll("line").data(segments).join("line").attr("class", "dep")
+    .attr("x1", function (s) { return s[0]; }).attr("y1", function (s) { return s[1]; }).attr("x2", function (s) { return s[2]; }).attr("y2", function (s) { return s[3]; });
+  var moves = drawn.filter(function (p) { return p.move !== null && Math.abs(X(p.move) - p.cx) > 14; });
+  moves.forEach(function (p) {
+    var to = X(p.move), way = to > p.cx ? 1 : -1;
+    svg.append("path").attr("class", "move").attr("d", "M" + (p.cx + 9 * way) + "," + p.cy + "H" + (to - 8 * way));
+    svg.append("path").attr("class", "movehead").attr("d", "M" + to + "," + p.cy + "l" + -9 * way + ",-4.5v9z");
+    taken.push([Math.min(p.cx, to) - 3, p.cy - 7, Math.max(p.cx, to) + 3, p.cy + 7]);
+  });
+
+  // Label pass. A label takes the best free place next to its point: right, left, above, below, then the corners.
+  // The last two places are one line away from the point. They are for a point with no free place next to it.
+  function places(p) {
+    var x = p.cx, y = p.cy, w = p.w, h = p.h;
+    return [[x + 11, y - h / 2, "start"], [x - 11 - w, y - h / 2, "end"], [x - w / 2, y - 11 - h, "middle"], [x - w / 2, y + 11, "middle"],
+      [x + 8, y - 8 - h, "start"], [x + 8, y + 8, "start"], [x - 8 - w, y - 8 - h, "end"], [x - 8 - w, y + 8, "end"],
+      [x - w / 2, y - 15 - 2 * h, "middle"], [x - w / 2, y + 15 + h, "middle"]];
+  }
+  function cuts(s, b) {
+    var steps = Math.ceil(Math.hypot(s[2] - s[0], s[3] - s[1]) / 5) || 1;
+    for (var i = 0; i <= steps; i++) {
+      var x = s[0] + (s[2] - s[0]) * i / steps, y = s[1] + (s[3] - s[1]) * i / steps;
+      if (x > b[0] && x < b[2] && y > b[1] && y < b[3]) return true;
+    }
+    return false;
+  }
+  // A place costs more when it is far down the list, covers something, leaves the frame, or lies on a line.
+  function cost(p, place, k) {
+    var b = [place[0] - 2, place[1] - 1, place[0] + p.w + 2, place[1] + p.h + 1], sum = k < 8 ? k : k + 22;
+    if (b[0] < L + 2 || b[2] > right - 2 || b[1] < T + 2 || b[3] > bottom - 2) sum += 5000;
+    taken.forEach(function (t) { if (t !== p.box && t !== p.mark && b[0] < t[2] && b[2] > t[0] && b[1] < t[3] && b[3] > t[1]) sum += 1000; });
+    segments.forEach(function (s) { if (cuts(s, b)) sum += 10; });
+    return sum;
+  }
+  // Two rounds: in the second round each label can move again, now that all the other labels have a place.
+  for (var round = 0; round < 2; round++) {
+    drawn.forEach(function (p) {
+      var best = null, low = Infinity;
+      places(p).forEach(function (place, k) { var c = cost(p, place, k); if (c < low) { low = c; best = place; } });
+      if (p.box) taken.splice(taken.indexOf(p.box), 1);
+      p.place = best;
+      p.box = [best[0], best[1], best[0] + p.w, best[1] + p.h];
+      taken.push(p.box);
+    });
+  }
+
+  var tip = d3.select("#tip");
+  function show(text, x, y) {
+    tip.style("display", "block").style("left", Math.max(8, Math.min(x, window.innerWidth - 300)) + "px").style("top", y + "px").text(text);
+  }
+  var g = svg.append("g").selectAll("g").data(drawn).join("g").attr("class", "point").attr("tabindex", 0);
+  g.append("circle").attr("class", function (p) { return "dot" + (p.estimate ? " hollow" : ""); }).attr("cx", function (p) { return p.cx; }).attr("cy", function (p) { return p.cy; }).attr("r", 5.5);
+  g.each(function (p) {
+    var node = d3.select(this), x = p.place[0] + (p.place[2] === "start" ? 0 : p.place[2] === "end" ? p.w : p.w / 2);
+    p.lines.forEach(function (line, k) {
+      node.append("text").attr("x", x).attr("y", p.place[1] + 11.5 + k * 15).attr("text-anchor", p.place[2]).attr("font-size", 13).attr("font-weight", p.anchor ? 700 : 400).text(line);
+    });
+    p.text = p.label + ". " + ax.label + ": " + tidy(p.x) + ". " + ay.label + ": " + tidy(p.y) + (p.estimate ? ". The position is an estimate" : "") +
+      (p.move !== null ? ". Expected to move to " + tidy(p.move) : "") + (p.note ? ". " + p.note : "");
+  });
+  g.append("circle").attr("class", "hit").attr("cx", function (p) { return p.cx; }).attr("cy", function (p) { return p.cy; }).attr("r", 12);
+  g.attr("aria-label", function (p) { return p.text; })
+    .on("mousemove", function (event, p) { show(p.text, event.clientX + 12, event.clientY + 12); })
+    .on("focus", function (event, p) { var r = this.getBoundingClientRect(); show(p.text, r.left, r.bottom + 6); })
+    .on("mouseleave blur", function () { tip.style("display", "none"); });
+
+  // The legend names only the marks that are on this map.
+  var legend = d3.select("#legend");
+  function key(text, make) {
+    var li = legend.append("li");
+    make(li.append("svg").attr("viewBox", "0 0 30 12").attr("aria-hidden", "true"));
+    li.append("span").text(text);
+  }
+  if (drawn.some(function (p) { return p.estimate; })) {
+    key("firm position", function (s) { s.append("circle").attr("class", "dot").attr("cx", 15).attr("cy", 6).attr("r", 4.5); });
+    key("estimated position", function (s) { s.append("circle").attr("class", "dot hollow").attr("cx", 15).attr("cy", 6).attr("r", 4.5); });
+  }
+  if (links.length) key("depends on", function (s) { s.append("line").attr("class", "dep").attr("x1", 2).attr("x2", 28).attr("y1", 6).attr("y2", 6); });
+  if (moves.length) key("expected evolution", function (s) {
+    s.append("path").attr("class", "move").attr("d", "M2,6H20");
+    s.append("path").attr("class", "movehead").attr("d", "M28,6l-9,-4.5v9z");
+  });
+
+  d3.select("#table thead tr").selectAll("th").data(["Label", ax.label, ay.label, "Estimate", "Note"]).join("th").text(function (h) { return h; });
+  var rows = d3.select("#table tbody").selectAll("tr").data(points).join("tr");
+  rows.append("td").text(function (p) { return p.label; });
+  rows.append("td").text(function (p) { return tidy(p.x) + (p.move !== null ? ", expected to move to " + tidy(p.move) : ""); });
+  rows.append("td").text(function (p) { return tidy(p.y); });
+  rows.append("td").text(function (p) { return p.estimate ? "yes" : ""; });
+  rows.append("td").text(function (p) { return p.note; });
+})();
+</script>
+</body>
+</html>

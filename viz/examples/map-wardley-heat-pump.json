@@ -1,0 +1,24 @@
+{
+  "title": "Heat Pump Controller Business",
+  "subtitle": "Wardley map. Positions are a first estimate",
+  "kind": "wardley",
+  "points": [
+    { "id": "owner", "label": "Home owner", "x": 0.55, "y": 0.95, "anchor": true },
+    { "id": "comfort", "label": "Comfortable home at low cost", "x": 0.60, "y": 0.86 },
+    { "id": "pump", "label": "Heat pump", "x": 0.72, "y": 0.74 },
+    { "id": "app", "label": "Installer app", "x": 0.58, "y": 0.68 },
+    { "id": "firmware", "label": "Control firmware", "x": 0.30, "y": 0.56, "note": "Our own cycle algorithms" },
+    { "id": "cloud", "label": "Cloud monitoring", "x": 0.36, "y": 0.48, "moveTo": 0.60, "note": "Custom-built today; the market sells it as a product" },
+    { "id": "board", "label": "Control board", "x": 0.66, "y": 0.38 },
+    { "id": "hosting", "label": "Hosting", "x": 0.90, "y": 0.14 }
+  ],
+  "links": [
+    { "from": "owner", "to": "comfort" },
+    { "from": "comfort", "to": "pump" },
+    { "from": "comfort", "to": "app" },
+    { "from": "pump", "to": "firmware" },
+    { "from": "app", "to": "cloud" },
+    { "from": "firmware", "to": "board" },
+    { "from": "cloud", "to": "hosting" }
+  ]
+}

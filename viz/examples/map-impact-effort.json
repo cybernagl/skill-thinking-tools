@@ -1,0 +1,16 @@
+{
+  "title": "Impact and Effort",
+  "subtitle": "Scores are estimates of the team, scale 1 to 10",
+  "kind": "quadrant",
+  "x": { "label": "Effort", "low": "Low effort", "high": "High effort" },
+  "y": { "label": "Impact", "low": "Low impact", "high": "High impact" },
+  "quadrants": { "topLeft": "Quick wins", "topRight": "Major projects", "bottomLeft": "Fill-ins", "bottomRight": "Thankless tasks" },
+  "scale": [1, 10],
+  "points": [
+    { "label": "Guided commissioning", "x": 6, "y": 8, "estimate": true },
+    { "label": "Firmware update fix", "x": 4, "y": 9 },
+    { "label": "Utility API", "x": 8, "y": 6, "estimate": true },
+    { "label": "Dark mode", "x": 2, "y": 2 },
+    { "label": "New logo", "x": 5, "y": 1 }
+  ]
+}

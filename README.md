@@ -8,8 +8,49 @@ that the untools list does not cover, such as the pre-mortem, Analysis
 of Competing Hypotheses, reference class forecasting, and the kernel of
 strategy.
 
+For the tools whose artifact is a picture, the skill draws the picture:
+a Mermaid block when the answer is Markdown (for example a note in
+Obsidian), and a D3 page when the answer is HTML.
+
 Written by Claude Code, for Claude Code and other agents that read
 `SKILL.md` files.
+
+## Diagrams
+
+[![Loop map](docs/img/loop-map.png)](https://cybernagl.github.io/skill-thinking-tools/samples/loop-map.html)
+
+A loop map of a support backlog: the script finds the feedback loops
+and gives each one its type, and the reader traces a loop on the circle.
+
+| | |
+|---|---|
+| [![Decision matrix](docs/img/decision-matrix.png)](https://cybernagl.github.io/skill-thinking-tools/samples/decision-matrix.html) | [![Fishbone](docs/img/fishbone.png)](https://cybernagl.github.io/skill-thinking-tools/samples/fishbone.html) |
+| Decision matrix: move the weights and see if the ranking holds | Fishbone: each cause has a status |
+
+- [Gallery](docs/gallery.md): each tool that has a diagram, with its
+  Mermaid form and a picture of its D3 page
+- [Live samples](https://cybernagl.github.io/skill-thinking-tools/):
+  the seven D3 pages, to open and use
+
+The same diagram in a Markdown note is a Mermaid block:
+
+```mermaid
+ishikawa-beta
+    4% of controllers fail the bus test
+    People
+        New operator on the evening shift
+    Machine
+        Test fixture not fully seated
+    Material
+        New solder paste supplier
+        New transceiver batch
+    Method
+        Test starts before bus initialisation
+    Measurement
+        Retests are not logged
+    Environment
+        Static discharge at the station
+```
 
 ## Design
 
@@ -41,12 +82,33 @@ The result is one skill with a router, not one skill for each tool. A
 tool gets its own file only where a test showed that an agent gets it
 wrong without one.
 
+The diagrams follow the same rule:
+
+- Asked for 16 diagrams without the skill, the small model drew the
+  fishbone, the Wardley map, and Cynefin as plain flowcharts, which
+  lose the shape of those diagrams. The frontier model found the
+  fitting Mermaid types, but it needed 25 minutes. The skill therefore
+  has a snippet for those three types only, and rules for the rest
+- With the skill, the small model wrote a valid fishbone and a valid
+  Wardley map into a note, and built a loop map page with the script.
+  The loops in its answer were the loops that the script found
+- The numbers on the pages are not left to the model. The script finds
+  the loops, the ranking, and the expected values, and its results are
+  checked against cases that were worked by hand
+- A diagram is drawn only for a tool that the user asked for. In two
+  test runs with ordinary requests and the skill in context, the
+  answers had no diagram and no framework
+
 ## Install
 
     git clone https://github.com/cybernagl/skill-thinking-tools ~/dev/skill-thinking-tools
     ln -s ~/dev/skill-thinking-tools ~/.claude/skills/thinking-tools
 
-There are no dependencies.
+The skill text has no dependencies. The script that builds the D3 pages
+needs Python 3. D3 7.9.2 is in the repository (`viz/vendor`, ISC
+licence), so the pages work offline. Mermaid diagrams need a renderer
+with Mermaid 11.16 or later, or Obsidian 1.15 or later, for the three
+beta diagram types.
 
 ## Contents
 
@@ -58,6 +120,25 @@ There are no dependencies.
 - `tools/connection-circles.md`
 - `tools/hard-choice-model.md`
 - `tools/productive-thinking-model.md`
+- `visuals.md`: which tools get a diagram, in which form, and the rules
+  for Mermaid and for the D3 pages
+- `mermaid/`: three snippets for the Mermaid types that agents get
+  wrong: fishbone, Wardley map, Cynefin
+- `viz/show.py`: builds one HTML page from a JSON file. Kinds: `loops`,
+  `matrix`, `tree`, `hierarchy`, `fishbone`, `map`. With `--check` it
+  prints the computed result and writes no page
+- `viz/templates/`, `viz/lib/`, `viz/examples/`: the pages, the
+  calculation code, and one example for each kind
+- `docs/`: the gallery and the live samples
+
+## Checks
+
+    python3 viz/tests/test_show.py
+
+The script checks the calculations against hand-worked cases, builds
+each page, and runs the same checks on the JavaScript of the pages if
+Node is installed. `python3 viz/build_samples.py` builds the sample
+pages in `docs/samples` again after a change to a template.
 
 The Zwicky box has its own skill:
 [skill-zwicky-box](https://github.com/cybernagl/skill-zwicky-box).

@@ -1,0 +1,25 @@
+{
+  "title": "Exclusive Distribution Deal",
+  "subtitle": "Expected revenue over three years",
+  "unit": "M EUR",
+  "goal": "max",
+  "root": {
+    "label": "Sign the exclusive deal?",
+    "children": [
+      {
+        "label": "Sign",
+        "children": [
+          { "label": "Wholesaler keeps buying", "p": 0.6, "value": 3.0 },
+          { "label": "Wholesaler cuts orders after year one", "p": 0.4, "value": 0.8 }
+        ]
+      },
+      {
+        "label": "Stay non-exclusive",
+        "children": [
+          { "label": "Steady growth", "p": 0.5, "value": 1.6 },
+          { "label": "Slow growth", "p": 0.5, "value": 1.0 }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decision Tree</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --panel: #f3f2ee; --ink: #0b0b0b; --ink-2: #52514e; --rule: #d6d5cf;
+    --plus: #2a78d6; --minus: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+      --plus: #3987e5; --minus: #d95926;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --panel: #242422; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3d3d39;
+    --plus: #3987e5; --minus: #d95926;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--surface); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  p { margin: 0 0 8px; }
+  p.sub { margin: 0 0 12px; color: var(--ink-2); }
+  h2 { font-size: 15px; margin: 18px 0 8px; }
+  .scroll { overflow-x: auto; }
+  #tree { display: block; }
+  .branch { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-linejoin: round; }
+  .branch.best { stroke: var(--plus); stroke-width: 4; }
+  .node .shape { fill: var(--ink); stroke: var(--surface); stroke-width: 2; }
+  .node text { fill: var(--ink); font-size: 13px; }
+  .node .under { fill: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .node .best { fill: var(--ink); font-weight: 700; }
+  .node .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .node .hit { fill: transparent; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-2); font-size: 13px; margin: 6px 0 14px; padding: 0; list-style: none; }
+  .legend svg { width: 14px; height: 14px; display: inline-block; vertical-align: -2px; margin-right: 6px; fill: var(--ink); }
+  .legend svg.line { width: 36px; stroke: var(--plus); stroke-width: 4; }
+  #result { background: var(--panel); border-left: 3px solid var(--ink); padding: 6px 10px; font-weight: 600; }
+  #controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin: 0 0 12px; }
+  .ctl { border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; }
+  .ctl .name { font-weight: 600; margin: 0 0 4px; }
+  .ctl label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 2px 0; }
+  .ctl .share, .ctl .other { font-variant-numeric: tabular-nums; }
+  .ctl input[type="range"] { display: block; width: 100%; margin: 4px 0 2px; accent-color: var(--plus); }
+  .ctl input[type="number"] { width: 84px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 2px 6px; }
+  button { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  .note { color: var(--ink-2); font-size: 13px; margin: 8px 0 0; }
+  .ctl .note { margin: 4px 0 0; }
+  .errors { border: 1px solid var(--minus); border-radius: 6px; padding: 8px 10px; margin: 0 0 12px; }
+  details { margin-top: 18px; }
+  summary { cursor: pointer; color: var(--ink-2); }
+  table { border-collapse: collapse; margin-top: 8px; font-size: 13px; width: 100%; }
+  th, td { text-align: left; padding: 4px 14px 4px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td { font-variant-numeric: tabular-nums; }
+  #tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--surface); padding: 6px 8px; border-radius: 4px; font-size: 13px; max-width: 280px; display: none; z-index: 5; white-space: pre-line; }
+</style>
+</head>
+<body>
+<h1 id="title">Decision Tree</h1>
+<p class="sub" id="subtitle"></p>
+<div id="errors"></div>
+<div class="scroll"><svg id="tree" role="img" aria-label="Decision tree"></svg></div>
+<ul class="legend">
+  <li><svg viewBox="0 0 16 16" role="img" aria-label="Square"><rect x="2" y="2" width="12" height="12"/></svg>decision</li>
+  <li><svg viewBox="0 0 16 16" role="img" aria-label="Circle"><circle cx="8" cy="8" r="6.5"/></svg>chance</li>
+  <li><svg viewBox="0 0 16 16" role="img" aria-label="Triangle"><path d="M2,8L14,1V15Z"/></svg>end</li>
+  <li><svg class="line" viewBox="0 0 36 14" role="img" aria-label="Thick line"><line x1="2" y1="7" x2="34" y2="7"/></svg>best branch of a decision</li>
+  <li>EV: expected value</li>
+  <li>p: probability</li>
+</ul>
+<p id="result"></p>
+<h2>Probabilities</h2>
+<div id="controls"></div>
+<p class="note" id="none" hidden>This tree has no chance node with two or more outcomes.</p>
+<button type="button" id="reset">Reset</button>
+<p class="note">The probabilities are estimates. Move them to see if the best choice holds.</p>
+<details>
+  <summary>Tree as a table</summary>
+  <div class="scroll"><table id="table"><thead><tr><th>Branch</th><th>Kind</th><th>Probability</th><th>Expected value</th></tr></thead><tbody></tbody></table></div>
+</details>
+<div id="tip" role="status"></div>
+<script>/*__D3__*/</script>
+<script>/*__LIB__*/</script>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  "use strict";
+  // "#light" or "#dark" at the end of the address fixes the theme.
+  var theme = location.hash.replace("#", "");
+  if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  var data = JSON.parse(document.getElementById("data").textContent);
+  var D = ThinkingDecision;
+  var heading = data.title || "Decision Tree";
+
+  document.title = heading;
+  d3.select("#title").text(heading);
+  d3.select("#subtitle").text(data.subtitle || "");
+
+  function report(lead, messages) {
+    var box = d3.select("#errors");
+    box.selectAll("*").remove();
+    if (!messages.length) return;
+    box = box.append("div").attr("class", "errors");
+    box.append("strong").text(lead);
+    messages.forEach(function (m) { box.append("div").text(m); });
+  }
+
+  function main() {
+    var goal = data.goal, highest = goal === undefined || goal === "max", unit = data.unit ? " " + data.unit : "";
+    // `work` is the tree with the probabilities that the reader sets. `base` is the result with the original probabilities.
+    var work = JSON.parse(JSON.stringify(data.root || {}));
+    var base = D.rollback(work, goal);
+    var p2 = d3.format(".2f");
+    // Large values get fewer decimals. The size of the end values decides, so the format does not change with the probabilities.
+    var size = 0, costs = false;
+    (function scan(node) {
+      if (node.kind === "end" && Math.abs(node.ev) > size) size = Math.abs(node.ev);
+      if (node.cost) costs = true;
+      (node.children || []).forEach(scan);
+    })(base);
+    var number = d3.format(size >= 1000 ? ",.0f" : size >= 100 ? ",.1f" : ",.2f");
+    function amount(v) { return isNaN(v) ? "not calculated" : number(v) + unit; }
+    function text(label, fallback) { return label === undefined || label === "" ? fallback : String(label); }
+
+    // One entry for each chance node with two or more outcomes. `source` is the node in `work`.
+    var chance = [];
+    (function collect(source, node, route, path) {
+      if (node.kind === "chance" && node.children.length > 1) {
+        chance.push({ source: source, route: route, name: path.join(" > ") || text(node.label, "First node"), start: source.children.map(function (c) { return c.p; }) });
+      }
+      (node.children || []).forEach(function (child, i) { collect(source.children[i], child, route.concat(i), path.concat(text(child.label, "Branch " + (i + 1)))); });
+    })(work, base, [], []);
+
+    // Two outcomes: one slider for the first outcome. More outcomes: number fields, normalised to a sum of 1.
+    var block = d3.select("#controls").selectAll("div").data(chance).join("div").attr("class", "ctl");
+    block.append("div").attr("class", "name").text(function (c) { return c.name; });
+    block.each(function (c, n) {
+      var box = d3.select(this), kids = c.source.children;
+      if (kids.length === 2) {
+        var label = box.append("label").attr("for", "p" + n);
+        label.append("span").text(text(kids[0].label, "First outcome"));
+        c.shown = label.append("span").attr("class", "share");
+        c.slider = box.append("input").attr("type", "range").attr("id", "p" + n).attr("min", 0).attr("max", 1).attr("step", 0.01)
+          .on("input", function () { kids[0].p = +this.value; kids[1].p = 1 - kids[0].p; refresh(); });
+        c.other = box.append("div").attr("class", "other");
+        c.even = box.append("div").attr("class", "note");
+      } else {
+        c.fields = kids.map(function (kid, k) {
+          var label = box.append("label");
+          label.append("span").text(text(kid.label, "Outcome " + (k + 1)));
+          return label.append("input").attr("type", "number").attr("min", 0).attr("max", 1).attr("step", 0.01).on("change", function () {
+            var p = D.normalise(c.fields.map(function (field) { return field.property("value"); }));
+            if (p) kids.forEach(function (each, j) { each.p = p[j]; });
+            refresh();
+          });
+        });
+        box.append("div").attr("class", "note").text("The values are normalised to a sum of 1.");
+      }
+    });
+    d3.select("#none").property("hidden", chance.length > 0);
+
+    var svg = d3.select("#tree"), tip = d3.select("#tip");
+    // A column has room for the label of a branch, and below the branch for "p 0.60", a cost, and the expected value.
+    var ROW = 70, FORK = 22, FIRST = 190, COL = Math.max(210, 105 + 7 * (5 + amount(base.ev).length)) + (costs ? 64 : 0);
+    function wrap(label, width) {
+      var lines = [], line = "";
+      label.split(/\s+/).forEach(function (word) {
+        if (line && (line + " " + word).length > width) { lines.push(line); line = word; } else { line = (line + " " + word).trim(); }
+      });
+      if (line) lines.push(line);
+      return lines.length > 2 ? [lines[0], lines[1] + " …"] : lines;
+    }
+    function isBest(n) { return Boolean(n.parent) && n.parent.data.kind === "decision" && n.parent.children.indexOf(n) === n.parent.data.best; }
+    function explain(n) {
+      var d = n.data, kids = d.children || [], lines = [text(d.label, "")];
+      if (d.kind === "end") lines.push("End: value " + amount(d.ev));
+      if (d.kind === "chance") lines.push("Chance: EV " + amount(d.ev) + " = " + kids.map(function (k) { return p2(k.p || 0) + " × " + number(k.ev); }).join(" + "));
+      if (d.kind === "decision") lines.push("Decision: EV " + amount(d.ev) + ", the " + (highest ? "highest" : "lowest") + " of " + kids.map(function (k) { return number(k.ev); }).join(", "));
+      if (d.cost) lines.push("This is after a cost of " + number(Number(d.cost)));
+      return lines.join("\n");
+    }
+
+    function draw(tree, summary) {
+      // d3.cluster gives each end node its own row, so the labels of two branches never share a row. The columns follow the depth.
+      var root = d3.cluster().nodeSize([ROW, COL]).separation(function () { return 1; })(d3.hierarchy(tree));
+      var nodes = root.descendants(), span = d3.extent(nodes, function (n) { return n.x; });
+      function X(n) { return FIRST + n.depth * COL; }
+      function Y(n) { return n.x - span[0] + 40; }
+      var W = d3.max(nodes, function (n) { return X(n) + (n.children ? 14 : 22 + 7.5 * amount(n.data.ev).length); }), H = span[1] - span[0] + ROW;
+      svg.attr("viewBox", "0 0 " + W + " " + H).attr("width", W).attr("height", H)
+        .attr("aria-label", heading + ": decision tree with " + nodes.length + " nodes. " + summary);
+      svg.selectAll("*").remove();
+      svg.append("path").attr("class", "branch").attr("d", "M8," + Y(root) + "H" + X(root));
+      svg.append("g").selectAll("path").data(root.links()).join("path")
+        .attr("class", function (l) { return isBest(l.target) ? "branch best" : "branch"; })
+        .attr("d", function (l) { return "M" + X(l.source) + "," + Y(l.source) + "L" + (X(l.source) + FORK) + "," + Y(l.target) + "H" + X(l.target); })
+        .filter(function (l) { return isBest(l.target); }).raise();
+
+      var g = svg.append("g").selectAll("g").data(nodes).join("g").attr("class", "node")
+        .attr("transform", function (n) { return "translate(" + X(n) + "," + Y(n) + ")"; });
+      g.each(function (n) {
+        var d = n.data, node = d3.select(this), left = n.parent ? FORK + 6 - COL : 8 - FIRST;
+        var lines = wrap(text(d.label, ""), 24), label = node.append("text").attr("class", "label");
+        lines.forEach(function (line, k) { label.append("tspan").attr("x", left).attr("y", -8 - 16 * (lines.length - 1 - k)).text(line); });
+        // Below the branch: the word "best" for the best branch of a decision, the probability, and a cost.
+        var under = node.append("text").attr("class", "under").attr("x", left).attr("y", 17), notes = [];
+        if (n.parent && n.parent.data.kind === "chance") notes.push("p " + p2(d.p || 0));
+        if (d.cost) notes.push("cost " + number(Number(d.cost)));
+        if (isBest(n)) under.append("tspan").attr("class", "best").text("best");
+        if (notes.length) under.append("tspan").attr("dx", isBest(n) ? 8 : 0).text(notes.join(" · "));
+        // The shape carries the kind: square for a decision, circle for a chance node, triangle for an end.
+        if (d.kind === "decision") node.append("rect").attr("class", "shape").attr("x", -7).attr("y", -7).attr("width", 14).attr("height", 14);
+        else if (d.kind === "chance") node.append("circle").attr("class", "shape").attr("r", 7.5);
+        else node.append("path").attr("class", "shape").attr("d", "M-8,0L7,-8V8Z");
+        var value = node.append("text").attr("class", "value");
+        if (d.kind === "end") value.attr("x", 14).attr("y", 5).text(amount(d.ev));
+        else value.attr("x", -13).attr("y", 17).attr("text-anchor", "end").text("EV " + amount(d.ev));
+        node.append("rect").attr("class", "hit").attr("x", left).attr("y", -38).attr("width", 16 - left).attr("height", 60)
+          .on("mousemove", function (event) {
+            tip.style("display", "block").style("left", Math.max(4, Math.min(event.clientX + 12, window.innerWidth - 300)) + "px").style("top", event.clientY + 12 + "px").text(explain(n));
+          })
+          .on("mouseleave", function () { tip.style("display", "none"); });
+      });
+
+      var rows = [];
+      root.eachBefore(function (n) { rows.push(n); });
+      d3.select("#table tbody").selectAll("tr").data(rows).join("tr").each(function (n) {
+        var d = n.data, cells = [text(d.label, ""), d.kind, n.parent && n.parent.data.kind === "chance" ? p2(d.p || 0) : "",
+          amount(d.ev) + (d.cost ? ", after a cost of " + number(Number(d.cost)) : "") + (isBest(n) ? " (best)" : "")];
+        d3.select(this).selectAll("td").data(cells).join("td").text(function (c) { return c; })
+          .filter(function (c, i) { return i === 0; }).style("padding-left", n.depth * 18 + "px");
+      });
+    }
+
+    function update() {
+      var tree = D.rollback(work, goal);
+      report("Not calculated:", tree.errors);
+      var moved = chance.some(function (c) { return c.source.children.some(function (kid, k) { return Math.abs((kid.p || 0) - (c.start[k] || 0)) > 1e-9; }); });
+      var line;
+      if (isNaN(tree.ev)) line = "There is no expected value. See the message above.";
+      else if (tree.kind !== "decision") line = "Expected value: " + amount(tree.ev) + ".";
+      else {
+        var best = tree.children[tree.best], was = base.children[base.best];
+        line = "Best first choice: " + text(best.label, "Branch " + (tree.best + 1)) + ", with the " + (highest ? "highest" : "lowest") + " expected value of " + amount(best.ev) + ".";
+        if (moved && was) {
+          line += tree.best === base.best ? " This is the same choice as with the original probabilities."
+            : " With the original probabilities, the best choice is " + text(was.label, "Branch " + (base.best + 1)) + ".";
+        }
+      }
+      d3.select("#result").text(line);
+      draw(tree, line);
+
+      var even = D.breakEven(tree, goal);
+      chance.forEach(function (c) {
+        var kids = c.source.children;
+        if (!c.slider) {
+          c.fields.forEach(function (field, k) { field.property("value", +(kids[k].p || 0).toFixed(2)); });
+          return;
+        }
+        c.slider.property("value", kids[0].p || 0);
+        c.shown.text("p " + p2(kids[0].p || 0));
+        c.other.text(text(kids[1].label, "Second outcome") + ": p " + p2(kids[1].p || 0));
+        // Break-even: only for a chance node directly under the root decision.
+        var e = c.route.length === 1 ? even.filter(function (entry) { return entry.index === c.route[0]; })[0] : null;
+        c.even.text(!e ? "" : e.p === null ? "No break-even between 0 and 1: this probability alone does not change the first choice."
+          : "Break-even at p " + d3.format(".3f")(e.p) + ". Above it, the best first choice is " + e.above + ". Below it, the best first choice is " + e.below + ".");
+      });
+    }
+    function refresh() {
+      try { update(); } catch (error) { report("The page is not complete:", [String((error && error.message) || error)]); }
+    }
+
+    d3.select("#reset").on("click", function () {
+      chance.forEach(function (c) {
+        c.source.children.forEach(function (kid, k) { if (c.start[k] === undefined) delete kid.p; else kid.p = c.start[k]; });
+      });
+      refresh();
+    });
+    update();
+  }
+
+  try { main(); } catch (error) { report("The page is not complete:", [String((error && error.message) || error)]); }
+})();
+</script>
+</body>
+</html>

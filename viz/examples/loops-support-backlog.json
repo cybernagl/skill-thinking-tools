@@ -1,0 +1,31 @@
+{
+  "title": "Support Backlog",
+  "subtitle": "Why each round of hiring ends in a larger backlog",
+  "elements": [
+    "Incoming tickets",
+    "Backlog",
+    "Response time",
+    "Agents and overtime",
+    "Agent experience",
+    "Escalations",
+    "Bug-fix time",
+    "Open bugs",
+    "Customer base"
+  ],
+  "links": [
+    { "from": "Customer base", "to": "Incoming tickets", "sign": "+", "note": "More customers send more tickets", "basis": "logic" },
+    { "from": "Open bugs", "to": "Incoming tickets", "sign": "+", "note": "Each open bug keeps causing tickets", "basis": "stated" },
+    { "from": "Incoming tickets", "to": "Backlog", "sign": "+", "note": "Inflow fills the queue", "basis": "logic" },
+    { "from": "Backlog", "to": "Response time", "sign": "+", "note": "Longer queue, longer wait", "basis": "logic" },
+    { "from": "Response time", "to": "Agents and overtime", "sign": "+", "delay": true, "note": "Hiring starts when it gets bad; hires take weeks", "basis": "stated" },
+    { "from": "Agents and overtime", "to": "Backlog", "sign": "-", "note": "More hours close more tickets", "basis": "stated" },
+    { "from": "Incoming tickets", "to": "Escalations", "sign": "+", "note": "A share of all tickets needs engineering", "basis": "logic" },
+    { "from": "Agents and overtime", "to": "Escalations", "sign": "+", "note": "More capacity sends more escalations each week", "basis": "assumed" },
+    { "from": "Agents and overtime", "to": "Agent experience", "sign": "-", "note": "New hires lower the average experience", "basis": "stated" },
+    { "from": "Agent experience", "to": "Escalations", "sign": "-", "note": "New agents escalate what experienced agents solve", "basis": "assumed" },
+    { "from": "Escalations", "to": "Bug-fix time", "sign": "-", "note": "Engineers on escalations do not fix root causes", "basis": "stated" },
+    { "from": "Bug-fix time", "to": "Open bugs", "sign": "-", "delay": true, "note": "Less fix time, more bugs stay open; the effect shows after months", "basis": "stated" },
+    { "from": "Response time", "to": "Incoming tickets", "sign": "+", "note": "Customers who wait write again", "basis": "assumed" },
+    { "from": "Agent experience", "to": "Backlog", "sign": "-", "note": "New agents close fewer tickets each week", "basis": "assumed" }
+  ]
+}
