@@ -1,6 +1,6 @@
 # Abstraction Laddering
 
-Also: Why-How Laddering (Stanford d.school). A problem-framing ladder from design practice. It is one of the methods of the LUMA Institute, and Wes O'Haire describes it in "Mental Models for Designers" (2019). Min Basadur's challenge mapping uses the same two directions with the questions "Why?" and "What's stopping you?". Use it to state a problem at a broader or narrower level before you solve it. It is not Hayakawa's ladder of abstraction for language.
+Also: Why-How Laddering (Stanford d.school). A problem-framing ladder from design practice. It is one of the methods of the LUMA Institute. Autodesk (2018) and Wes O'Haire (2019) describe it under the same name. Min Basadur's challenge mapping uses the same two directions with the questions "Why?" and "What's stopping you?". Use it to state a problem at a broader or narrower level before you solve it. It is not Hayakawa's ladder of abstraction for language.
 
 ## Structure
 
@@ -39,6 +39,7 @@ narrower statement   ("How else?" adds more)
 
 - LUMA Institute. "Abstraction Laddering." Method page of the LUMA System
 - LUMA Institute. Innovating for People: Handbook of Human-Centered Design Methods
+- Autodesk. "Clearly Define the Problem with Abstraction Laddering." Manufacturing Resource Center, 2018 (page removed; a copy of 2019 is in the Internet Archive)
 - O'Haire, Wes. "Mental Models for Designers." Dropbox Design, 2019
 - Basadur, Min, et al. "A New Methodology for Formulating Ill-Structured Problems." Omega (challenge mapping)
 - Stanford d.school. Design Thinking Bootleg (Why-How Laddering)
